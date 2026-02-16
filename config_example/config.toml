@@ -1,5 +1,4 @@
 # MonitorCrebirth Configuration
-# Copy to ~/.monitorcrebirth/config.toml
 
 [general]
 refresh_interval_sec = 30
@@ -16,7 +15,11 @@ show_borders = true
 default_tab = 0
 tab_names = ["Crypto", "Indices", "Commodities", "News", "Custom"]
 
-# ─── RSS/Atom feeds ───
+# ═══════════════════════════════════════════
+#  RSS / Atom Feeds
+# ═══════════════════════════════════════════
+
+# ─── Crypto ───
 
 [[source.rss]]
 name = "CoinTelegraph"
@@ -25,12 +28,88 @@ category = "crypto"
 refresh_interval_sec = 60
 
 [[source.rss]]
+name = "CoinDesk"
+url = "https://www.coindesk.com/arc/outboundfeeds/rss/"
+category = "crypto"
+refresh_interval_sec = 60
+
+[[source.rss]]
+name = "Bitcoin Magazine"
+url = "https://bitcoinmagazine.com/feed"
+category = "crypto"
+refresh_interval_sec = 120
+
+[[source.rss]]
+name = "Decrypt"
+url = "https://decrypt.co/feed"
+category = "crypto"
+refresh_interval_sec = 90
+
+# ─── Finance / Marchés ───
+
+[[source.rss]]
 name = "BBC Business"
 url = "https://feeds.bbci.co.uk/news/business/rss.xml"
 category = "stock_index"
 refresh_interval_sec = 120
 
-# ─── REST API sources ───
+[[source.rss]]
+name = "Reuters Business"
+url = "https://www.reutersagency.com/feed/?best-topics=business-finance"
+category = "stock_index"
+refresh_interval_sec = 120
+
+[[source.rss]]
+name = "CNBC Top News"
+url = "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114"
+category = "stock_index"
+refresh_interval_sec = 120
+
+[[source.rss]]
+name = "MarketWatch"
+url = "https://feeds.content.dowjones.io/public/rss/mw_topstories"
+category = "stock_index"
+refresh_interval_sec = 120
+
+# ─── Commodités / Forex ───
+
+[[source.rss]]
+name = "Investing.com Comm."
+url = "https://www.investing.com/rss/commodities.rss"
+category = "commodity"
+refresh_interval_sec = 180
+
+[[source.rss]]
+name = "FXStreet"
+url = "https://www.fxstreet.com/rss"
+category = "forex"
+refresh_interval_sec = 120
+
+# ─── Tech / Général ───
+
+[[source.rss]]
+name = "Hacker News"
+url = "https://hnrss.org/frontpage"
+category = "custom"
+refresh_interval_sec = 120
+
+[[source.rss]]
+name = "TechCrunch"
+url = "https://techcrunch.com/feed/"
+category = "custom"
+refresh_interval_sec = 180
+
+[[source.rss]]
+name = "Ars Technica"
+url = "https://feeds.arstechnica.com/arstechnica/index"
+category = "custom"
+refresh_interval_sec = 180
+
+# ═══════════════════════════════════════════
+#  REST API Sources
+# ═══════════════════════════════════════════
+
+# ─── Binance (Crypto - top pairs) ───
 
 [[source.rest]]
 name = "Binance"
@@ -40,15 +119,59 @@ method = "GET"
 category = "crypto"
 api_key_header = ""
 api_key = ""
-symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT"]
+symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "AVAXUSDT", "DOTUSDT", "LINKUSDT", "MATICUSDT"]
 refresh_interval_sec = 15
 response_format = "json_array"
 
-# ─── WebSocket sources ───
+# ─── CoinGecko (Crypto - top 10 par market cap) ───
+
+[[source.rest]]
+name = "CoinGecko"
+base_url = "https://api.coingecko.com/api/v3"
+endpoint = "/simple/price"
+method = "GET"
+category = "crypto"
+api_key_header = ""
+api_key = ""
+params = "ids=bitcoin,ethereum,solana,ripple,dogecoin,cardano,avalanche-2,polkadot,chainlink,polygon&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true"
+refresh_interval_sec = 45
+response_format = "json_object"
+
+# ─── Indices boursiers via CoinGecko (pour les exchanges) ───
+
+[[source.rest]]
+name = "CoinGecko Exchanges"
+base_url = "https://api.coingecko.com/api/v3"
+endpoint = "/exchanges"
+method = "GET"
+category = "stock_index"
+api_key_header = ""
+api_key = ""
+params = "per_page=5"
+refresh_interval_sec = 120
+response_format = "json_array"
+
+# ═══════════════════════════════════════════
+#  WebSocket Sources (temps réel)
+# ═══════════════════════════════════════════
 
 [[source.websocket]]
-name = "Binance WS"
+name = "Binance BTC"
 url = "wss://stream.binance.com:9443/ws/btcusdt@ticker"
+category = "crypto"
+subscribe_message = ""
+reconnect_interval_sec = 5
+
+[[source.websocket]]
+name = "Binance ETH"
+url = "wss://stream.binance.com:9443/ws/ethusdt@ticker"
+category = "crypto"
+subscribe_message = ""
+reconnect_interval_sec = 5
+
+[[source.websocket]]
+name = "Binance SOL"
+url = "wss://stream.binance.com:9443/ws/solusdt@ticker"
 category = "crypto"
 subscribe_message = ""
 reconnect_interval_sec = 5
