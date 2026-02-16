@@ -59,20 +59,23 @@ static int ws_callback(struct lws *wsi, enum lws_callback_reasons reason,
         entry.source_type = MC_SOURCE_WEBSOCKET;
         entry.category = conn->cfg.category;
 
-        cJSON *sym = cJSON_GetObjectItem(root, "s");
+        /* Use CaseSensitive: Binance WS has both "p"/"P", "c"/"C" etc. */
+        cJSON *sym = cJSON_GetObjectItemCaseSensitive(root, "s");
         if (sym && sym->valuestring)
             strncpy(entry.symbol, sym->valuestring, MC_MAX_SYMBOL - 1);
 
-        cJSON *price = cJSON_GetObjectItem(root, "c"); /* last price */
-        if (!price) price = cJSON_GetObjectItem(root, "p");
+        cJSON *price = cJSON_GetObjectItemCaseSensitive(root, "c");
         if (price && price->valuestring)
             entry.value = atof(price->valuestring);
 
-        cJSON *change = cJSON_GetObjectItem(root, "P"); /* price change % */
-        if (change && change->valuestring)
-            entry.change_pct = atof(change->valuestring);
+        /* "P" = price change percent, "p" = absolute price change */
+        cJSON *pct = cJSON_GetObjectItemCaseSensitive(root, "P");
+        if (pct && pct->valuestring)
+            entry.change_pct = atof(pct->valuestring);
+        else
+            entry.change_pct = 0;
 
-        cJSON *vol = cJSON_GetObjectItem(root, "v");
+        cJSON *vol = cJSON_GetObjectItemCaseSensitive(root, "v");
         if (vol && vol->valuestring)
             entry.volume = atof(vol->valuestring);
 

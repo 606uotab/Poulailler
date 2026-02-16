@@ -219,11 +219,18 @@ static int read_entries(sqlite3_stmt *stmt, mc_data_entry_t *out, int max_count)
 int mc_db_get_latest_entries(mc_db_t *db, mc_category_t cat,
                              mc_data_entry_t *out, int max_count)
 {
+    /* Deduplicate: latest entry per (symbol, source_name) */
     const char *sql =
-        "SELECT id,source_name,source_type,category,symbol,display_name,"
-        "value,currency,change_pct,volume,timestamp,fetched_at "
-        "FROM data_entries WHERE category=? "
-        "ORDER BY fetched_at DESC LIMIT ?";
+        "SELECT d.id,d.source_name,d.source_type,d.category,d.symbol,"
+        "d.display_name,d.value,d.currency,d.change_pct,d.volume,"
+        "d.timestamp,d.fetched_at "
+        "FROM data_entries d "
+        "INNER JOIN (SELECT symbol,source_name,MAX(fetched_at) AS max_fa "
+        "  FROM data_entries WHERE category=? "
+        "  GROUP BY symbol,source_name) g "
+        "ON d.symbol=g.symbol AND d.source_name=g.source_name "
+        "  AND d.fetched_at=g.max_fa "
+        "ORDER BY d.symbol LIMIT ?";
 
     pthread_mutex_lock(&db->mutex);
     sqlite3_stmt *stmt;
