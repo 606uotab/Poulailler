@@ -10,8 +10,19 @@
 #include <unistd.h>
 #include <time.h>
 
-#define MAX_SNAPSHOT_ENTRIES 256
-#define MAX_SNAPSHOT_NEWS   256
+#define MAX_SNAPSHOT_ENTRIES 512
+#define MAX_SNAPSHOT_NEWS   512
+#define PRUNE_INTERVAL_SEC  300   /* Prune DB every 5 minutes */
+#define PRUNE_MAX_AGE_SEC   86400 /* Keep data for 24 hours */
+#define MAX_BACKOFF_SEC     300   /* Max retry backoff: 5 min */
+
+/* Per-source tracking for retry backoff */
+typedef struct {
+    int  consecutive_failures;
+    int  backoff_sec;
+    time_t last_attempt;
+    time_t last_success;
+} source_health_t;
 
 struct mc_scheduler {
     const mc_config_t *cfg;
@@ -20,12 +31,18 @@ struct mc_scheduler {
     /* Background threads */
     pthread_t          rss_thread;
     pthread_t          rest_thread;
+    pthread_t          prune_thread;
     int                rss_thread_active;
     int                rest_thread_active;
+    int                prune_thread_active;
 
     /* WebSocket connections */
     mc_ws_conn_t      *ws_conns[MC_MAX_SOURCES];
     int                ws_count;
+
+    /* Per-source health tracking */
+    source_health_t    rss_health[MC_MAX_SOURCES];
+    source_health_t    rest_health[MC_MAX_SOURCES];
 
     /* Shared snapshot for API consumers */
     pthread_rwlock_t   snapshot_lock;
@@ -42,7 +59,6 @@ static void update_snapshot(mc_scheduler_t *sched)
 {
     pthread_rwlock_wrlock(&sched->snapshot_lock);
 
-    /* Refresh entries from DB for each category */
     sched->entry_count = 0;
     for (int cat = MC_CAT_CRYPTO; cat <= MC_CAT_CUSTOM; cat++) {
         int remaining = MAX_SNAPSHOT_ENTRIES - sched->entry_count;
@@ -52,7 +68,6 @@ static void update_snapshot(mc_scheduler_t *sched)
         sched->entry_count += n;
     }
 
-    /* Refresh news */
     sched->news_count = 0;
     for (int cat = MC_CAT_CRYPTO; cat <= MC_CAT_CUSTOM; cat++) {
         int remaining = MAX_SNAPSHOT_NEWS - sched->news_count;
@@ -65,14 +80,69 @@ static void update_snapshot(mc_scheduler_t *sched)
     pthread_rwlock_unlock(&sched->snapshot_lock);
 }
 
+static int should_skip_source(source_health_t *h, int force)
+{
+    if (force) return 0;
+    if (h->consecutive_failures == 0) return 0;
+
+    time_t now = time(NULL);
+    if (now - h->last_attempt < h->backoff_sec) {
+        return 1; /* Still in backoff period */
+    }
+    return 0;
+}
+
+static void record_success(source_health_t *h)
+{
+    h->consecutive_failures = 0;
+    h->backoff_sec = 0;
+    h->last_success = time(NULL);
+    h->last_attempt = time(NULL);
+}
+
+static void record_failure(source_health_t *h, const char *name)
+{
+    h->consecutive_failures++;
+    h->last_attempt = time(NULL);
+
+    /* Exponential backoff: 2, 4, 8, 16, 32... capped at MAX_BACKOFF_SEC */
+    h->backoff_sec = 2;
+    for (int i = 1; i < h->consecutive_failures && h->backoff_sec < MAX_BACKOFF_SEC; i++)
+        h->backoff_sec *= 2;
+    if (h->backoff_sec > MAX_BACKOFF_SEC)
+        h->backoff_sec = MAX_BACKOFF_SEC;
+
+    MC_LOG_WARN("Source %s: %d consecutive failures, backoff %ds",
+                name, h->consecutive_failures, h->backoff_sec);
+}
+
+static void sleep_interruptible(mc_scheduler_t *sched, int seconds)
+{
+    for (int s = 0; s < seconds && sched->running; s++) {
+        if (sched->force_refresh) {
+            sched->force_refresh = 0;
+            break;
+        }
+        sleep(1);
+    }
+}
+
 static void *rss_thread_func(void *arg)
 {
     mc_scheduler_t *sched = arg;
     mc_news_item_t items[64];
 
     while (sched->running) {
+        int any_fetched = 0;
+
         for (int i = 0; i < sched->cfg->rss_count && sched->running; i++) {
             const mc_rss_source_cfg_t *src = &sched->cfg->rss_sources[i];
+            source_health_t *h = &sched->rss_health[i];
+
+            if (should_skip_source(h, sched->force_refresh)) {
+                MC_LOG_DEBUG("Skipping %s (backoff %ds)", src->name, h->backoff_sec);
+                continue;
+            }
 
             int n = mc_fetch_rss(src, items, 64);
             if (n > 0) {
@@ -80,23 +150,19 @@ static void *rss_thread_func(void *arg)
                     mc_db_insert_news(sched->db, &items[j]);
                 mc_db_update_source_status(sched->db, src->name,
                                            MC_SOURCE_RSS, NULL);
+                record_success(h);
+                any_fetched = 1;
             } else if (n < 0) {
                 mc_db_update_source_status(sched->db, src->name,
                                            MC_SOURCE_RSS, "fetch failed");
+                record_failure(h, src->name);
             }
         }
 
-        update_snapshot(sched);
+        if (any_fetched)
+            update_snapshot(sched);
 
-        /* Sleep in small increments so we can stop quickly */
-        int sleep_sec = sched->cfg->refresh_interval_sec;
-        for (int s = 0; s < sleep_sec && sched->running; s++) {
-            if (sched->force_refresh) {
-                sched->force_refresh = 0;
-                break;
-            }
-            sleep(1);
-        }
+        sleep_interruptible(sched, sched->cfg->refresh_interval_sec);
     }
 
     return NULL;
@@ -108,8 +174,16 @@ static void *rest_thread_func(void *arg)
     mc_data_entry_t entries[64];
 
     while (sched->running) {
+        int any_fetched = 0;
+
         for (int i = 0; i < sched->cfg->rest_count && sched->running; i++) {
             const mc_rest_source_cfg_t *src = &sched->cfg->rest_sources[i];
+            source_health_t *h = &sched->rest_health[i];
+
+            if (should_skip_source(h, sched->force_refresh)) {
+                MC_LOG_DEBUG("Skipping %s (backoff %ds)", src->name, h->backoff_sec);
+                continue;
+            }
 
             int n = mc_fetch_rest(src, entries, 64);
             if (n > 0) {
@@ -117,24 +191,40 @@ static void *rest_thread_func(void *arg)
                     mc_db_insert_entry(sched->db, &entries[j]);
                 mc_db_update_source_status(sched->db, src->name,
                                            MC_SOURCE_REST, NULL);
+                record_success(h);
+                any_fetched = 1;
             } else if (n < 0) {
                 mc_db_update_source_status(sched->db, src->name,
                                            MC_SOURCE_REST, "fetch failed");
+                record_failure(h, src->name);
             }
         }
 
-        update_snapshot(sched);
+        if (any_fetched)
+            update_snapshot(sched);
 
-        int sleep_sec = sched->cfg->refresh_interval_sec;
-        for (int s = 0; s < sleep_sec && sched->running; s++) {
-            if (sched->force_refresh) {
-                sched->force_refresh = 0;
-                break;
-            }
-            sleep(1);
-        }
+        sleep_interruptible(sched, sched->cfg->refresh_interval_sec);
     }
 
+    return NULL;
+}
+
+/* Background thread: prune old data + update snapshot periodically */
+static void *prune_thread_func(void *arg)
+{
+    mc_scheduler_t *sched = arg;
+
+    while (sched->running) {
+        sleep_interruptible(sched, PRUNE_INTERVAL_SEC);
+        if (!sched->running) break;
+
+        mc_error_t err = mc_db_prune_old(sched->db, PRUNE_MAX_AGE_SEC);
+        if (err == MC_OK)
+            MC_LOG_INFO("DB pruned (entries older than %d hours removed)",
+                        PRUNE_MAX_AGE_SEC / 3600);
+
+        update_snapshot(sched);
+    }
     return NULL;
 }
 
@@ -153,7 +243,6 @@ int mc_scheduler_start(mc_scheduler_t *sched)
 {
     sched->running = 1;
 
-    /* Start RSS thread */
     if (sched->cfg->rss_count > 0) {
         if (pthread_create(&sched->rss_thread, NULL, rss_thread_func, sched) == 0)
             sched->rss_thread_active = 1;
@@ -161,7 +250,6 @@ int mc_scheduler_start(mc_scheduler_t *sched)
             MC_LOG_ERROR("Failed to start RSS thread");
     }
 
-    /* Start REST thread */
     if (sched->cfg->rest_count > 0) {
         if (pthread_create(&sched->rest_thread, NULL, rest_thread_func, sched) == 0)
             sched->rest_thread_active = 1;
@@ -177,7 +265,11 @@ int mc_scheduler_start(mc_scheduler_t *sched)
             sched->ws_count++;
     }
 
-    MC_LOG_INFO("Scheduler started: %d RSS, %d REST, %d WS",
+    /* Start pruning thread */
+    if (pthread_create(&sched->prune_thread, NULL, prune_thread_func, sched) == 0)
+        sched->prune_thread_active = 1;
+
+    MC_LOG_INFO("Scheduler started: %d RSS, %d REST, %d WS + pruning",
                 sched->cfg->rss_count, sched->cfg->rest_count,
                 sched->ws_count);
     return 0;
@@ -192,6 +284,8 @@ void mc_scheduler_stop(mc_scheduler_t *sched)
         pthread_join(sched->rss_thread, NULL);
     if (sched->rest_thread_active)
         pthread_join(sched->rest_thread, NULL);
+    if (sched->prune_thread_active)
+        pthread_join(sched->prune_thread, NULL);
 
     for (int i = 0; i < sched->ws_count; i++)
         mc_ws_disconnect(sched->ws_conns[i]);

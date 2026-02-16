@@ -30,6 +30,14 @@ typedef struct {
     int           symbol_count;
     int           refresh_interval_sec;
     char          response_format[32];  /* json_object, json_array */
+
+    /* Generic field mapping (JSONPath-like, simple dot notation) */
+    char          field_symbol[64];     /* e.g. "symbol" or "s" */
+    char          field_price[64];      /* e.g. "lastPrice" or "price" */
+    char          field_change[64];     /* e.g. "priceChangePercent" */
+    char          field_volume[64];     /* e.g. "volume" */
+    char          field_name[64];       /* e.g. "name" for display */
+    char          data_path[64];        /* e.g. "data.items" - path to array */
 } mc_rest_source_cfg_t;
 
 typedef struct {

@@ -141,6 +141,45 @@ static enum MHD_Result handle_refresh(mc_api_http_t *api,
     return send_json(conn, MHD_HTTP_OK, root);
 }
 
+static enum MHD_Result handle_sources(mc_api_http_t *api,
+                                       struct MHD_Connection *conn)
+{
+    mc_source_status_t statuses[64];
+    int n = mc_db_get_source_statuses(api->db, statuses, 64);
+
+    cJSON *arr = cJSON_CreateArray();
+    for (int i = 0; i < n; i++) {
+        cJSON *obj = cJSON_CreateObject();
+        cJSON_AddStringToObject(obj, "name", statuses[i].source_name);
+        cJSON_AddStringToObject(obj, "type",
+            mc_source_type_str(statuses[i].source_type));
+        cJSON_AddNumberToObject(obj, "last_fetched",
+            (double)statuses[i].last_fetched);
+
+        time_t ago = time(NULL) - statuses[i].last_fetched;
+        cJSON_AddNumberToObject(obj, "seconds_ago", (double)ago);
+
+        if (statuses[i].last_error[0])
+            cJSON_AddStringToObject(obj, "last_error", statuses[i].last_error);
+        else
+            cJSON_AddNullToObject(obj, "last_error");
+
+        cJSON_AddNumberToObject(obj, "error_count", statuses[i].error_count);
+
+        const char *health = statuses[i].error_count == 0 ? "healthy" :
+                             statuses[i].error_count < 3 ? "degraded" : "failing";
+        cJSON_AddStringToObject(obj, "health", health);
+
+        cJSON_AddItemToArray(arr, obj);
+    }
+
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddItemToObject(root, "sources", arr);
+    cJSON_AddNumberToObject(root, "count", n);
+
+    return send_json(conn, MHD_HTTP_OK, root);
+}
+
 static enum MHD_Result handle_history(mc_api_http_t *api,
                                        struct MHD_Connection *conn,
                                        const char *symbol)
@@ -195,6 +234,9 @@ static enum MHD_Result request_handler(void *cls,
 
     if (strcmp(url, "/api/v1/status") == 0 && strcmp(method, "GET") == 0)
         return handle_status(api, conn);
+
+    if (strcmp(url, "/api/v1/sources") == 0 && strcmp(method, "GET") == 0)
+        return handle_sources(api, conn);
 
     if (strcmp(url, "/api/v1/refresh") == 0 && strcmp(method, "POST") == 0)
         return handle_refresh(api, conn);

@@ -101,6 +101,7 @@ int tui_run(mc_client_t *client)
         init_pair(CP_HEADER, COLOR_CYAN,   -1);
         init_pair(CP_ACTIVE, COLOR_YELLOW, -1);
         init_pair(CP_NORMAL, COLOR_WHITE,  -1);
+        init_pair(6,        COLOR_BLACK,  -1); /* CP_DIM */
     }
 
     int max_y, max_x;

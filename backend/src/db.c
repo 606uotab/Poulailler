@@ -414,3 +414,40 @@ int mc_db_count_news(mc_db_t *db)
     pthread_mutex_unlock(&db->mutex);
     return count;
 }
+
+int mc_db_get_source_statuses(mc_db_t *db, mc_source_status_t *out, int max_count)
+{
+    const char *sql =
+        "SELECT source_name,source_type,last_fetched,last_error,error_count "
+        "FROM source_status ORDER BY source_name";
+
+    pthread_mutex_lock(&db->mutex);
+    sqlite3_stmt *stmt;
+    int rc = sqlite3_prepare_v2(db->handle, sql, -1, &stmt, NULL);
+    if (rc != SQLITE_OK) {
+        pthread_mutex_unlock(&db->mutex);
+        return 0;
+    }
+
+    int count = 0;
+    while (count < max_count && sqlite3_step(stmt) == SQLITE_ROW) {
+        mc_source_status_t *s = &out[count];
+        memset(s, 0, sizeof(*s));
+
+        const char *name = (const char *)sqlite3_column_text(stmt, 0);
+        if (name) strncpy(s->source_name, name, MC_MAX_SOURCE - 1);
+
+        s->source_type = sqlite3_column_int(stmt, 1);
+        s->last_fetched = sqlite3_column_int64(stmt, 2);
+
+        const char *err = (const char *)sqlite3_column_text(stmt, 3);
+        if (err) strncpy(s->last_error, err, sizeof(s->last_error) - 1);
+
+        s->error_count = sqlite3_column_int(stmt, 4);
+        count++;
+    }
+
+    sqlite3_finalize(stmt);
+    pthread_mutex_unlock(&db->mutex);
+    return count;
+}

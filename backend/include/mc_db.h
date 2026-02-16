@@ -27,4 +27,15 @@ mc_error_t mc_db_prune_old(mc_db_t *db, int max_age_sec);
 int mc_db_count_entries(mc_db_t *db);
 int mc_db_count_news(mc_db_t *db);
 
+/* Source status info */
+typedef struct {
+    char             source_name[MC_MAX_SOURCE];
+    mc_source_type_t source_type;
+    time_t           last_fetched;
+    char             last_error[256];
+    int              error_count;
+} mc_source_status_t;
+
+int mc_db_get_source_statuses(mc_db_t *db, mc_source_status_t *out, int max_count);
+
 #endif

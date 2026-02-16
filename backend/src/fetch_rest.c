@@ -133,6 +133,139 @@ static int parse_coingecko_response(const char *json, const char *source_name,
     return count;
 }
 
+/* Navigate a JSON object by dot-separated path, e.g. "data.items" */
+static cJSON *json_navigate(cJSON *root, const char *path)
+{
+    if (!path || !path[0]) return root;
+
+    char buf[128];
+    strncpy(buf, path, sizeof(buf) - 1);
+    buf[sizeof(buf) - 1] = '\0';
+
+    cJSON *current = root;
+    char *tok = strtok(buf, ".");
+    while (tok && current) {
+        current = cJSON_GetObjectItemCaseSensitive(current, tok);
+        tok = strtok(NULL, ".");
+    }
+    return current;
+}
+
+/* Extract a double from a JSON value (handles both number and string) */
+static double json_get_double(cJSON *obj, const char *key)
+{
+    if (!key || !key[0]) return NAN;
+    cJSON *v = cJSON_GetObjectItemCaseSensitive(obj, key);
+    if (!v) return NAN;
+    if (cJSON_IsNumber(v)) return v->valuedouble;
+    if (cJSON_IsString(v) && v->valuestring) return atof(v->valuestring);
+    return NAN;
+}
+
+static const char *json_get_string(cJSON *obj, const char *key)
+{
+    if (!key || !key[0]) return NULL;
+    cJSON *v = cJSON_GetObjectItemCaseSensitive(obj, key);
+    if (v && cJSON_IsString(v)) return v->valuestring;
+    return NULL;
+}
+
+static int parse_generic_response(const char *json,
+                                   const mc_rest_source_cfg_t *cfg,
+                                   mc_data_entry_t *out, int max_entries)
+{
+    cJSON *root = cJSON_Parse(json);
+    if (!root) return 0;
+
+    /* Navigate to data array if data_path is specified */
+    cJSON *data = root;
+    if (cfg->data_path[0])
+        data = json_navigate(root, cfg->data_path);
+
+    if (!data) { cJSON_Delete(root); return 0; }
+
+    int count = 0;
+
+    /* If data is an array, iterate items */
+    if (cJSON_IsArray(data)) {
+        int n = cJSON_GetArraySize(data);
+        for (int i = 0; i < n && count < max_entries; i++) {
+            cJSON *item = cJSON_GetArrayItem(data, i);
+            if (!item) continue;
+
+            mc_data_entry_t *e = &out[count];
+            memset(e, 0, sizeof(*e));
+
+            strncpy(e->source_name, cfg->name, MC_MAX_SOURCE - 1);
+            e->source_type = MC_SOURCE_REST;
+            e->category = cfg->category;
+
+            /* Map fields */
+            const char *sym = json_get_string(item,
+                cfg->field_symbol[0] ? cfg->field_symbol : "symbol");
+            if (sym) strncpy(e->symbol, sym, MC_MAX_SYMBOL - 1);
+
+            const char *name = json_get_string(item,
+                cfg->field_name[0] ? cfg->field_name : "name");
+            if (name) strncpy(e->display_name, name, MC_MAX_NAME - 1);
+
+            e->value = json_get_double(item,
+                cfg->field_price[0] ? cfg->field_price : "price");
+
+            e->change_pct = json_get_double(item,
+                cfg->field_change[0] ? cfg->field_change : "change_percent");
+
+            e->volume = json_get_double(item,
+                cfg->field_volume[0] ? cfg->field_volume : "volume");
+
+            strncpy(e->currency, "USD", MC_MAX_SYMBOL - 1);
+            e->timestamp = time(NULL);
+            e->fetched_at = time(NULL);
+
+            /* Only count if we got at least a symbol or price */
+            if ((e->symbol[0] || e->display_name[0]) && !isnan(e->value))
+                count++;
+        }
+    }
+    /* If data is an object, treat each key as a symbol (CoinGecko-style) */
+    else if (cJSON_IsObject(data)) {
+        cJSON *item = NULL;
+        cJSON_ArrayForEach(item, data) {
+            if (count >= max_entries) break;
+            if (!item->string) continue;
+
+            mc_data_entry_t *e = &out[count];
+            memset(e, 0, sizeof(*e));
+
+            strncpy(e->source_name, cfg->name, MC_MAX_SOURCE - 1);
+            e->source_type = MC_SOURCE_REST;
+            e->category = cfg->category;
+            strncpy(e->symbol, item->string, MC_MAX_SYMBOL - 1);
+
+            if (cJSON_IsObject(item)) {
+                e->value = json_get_double(item,
+                    cfg->field_price[0] ? cfg->field_price : "usd");
+                e->change_pct = json_get_double(item,
+                    cfg->field_change[0] ? cfg->field_change : "usd_24h_change");
+                e->volume = json_get_double(item,
+                    cfg->field_volume[0] ? cfg->field_volume : "usd_24h_vol");
+            } else if (cJSON_IsNumber(item)) {
+                e->value = item->valuedouble;
+            }
+
+            strncpy(e->currency, "USD", MC_MAX_SYMBOL - 1);
+            e->timestamp = time(NULL);
+            e->fetched_at = time(NULL);
+
+            if (e->symbol[0] && !isnan(e->value) && e->value != 0)
+                count++;
+        }
+    }
+
+    cJSON_Delete(root);
+    return count;
+}
+
 int mc_fetch_rest(const mc_rest_source_cfg_t *cfg,
                   mc_data_entry_t *entries_out, int max_entries)
 {
@@ -177,20 +310,19 @@ int mc_fetch_rest(const mc_rest_source_cfg_t *cfg,
         return -1;
     }
 
-    /* Route to the correct parser based on source name */
+    /* Route to the correct parser */
     int count = 0;
-    if (strstr(cfg->name, "Binance") || strstr(cfg->name, "binance")) {
+
+    if (cfg->field_price[0]) {
+        /* Generic parser: use field mappings from config */
+        count = parse_generic_response(buf.data, cfg, entries_out, max_entries);
+    } else if (strstr(cfg->name, "Binance") || strstr(cfg->name, "binance")) {
         count = parse_binance_response(buf.data, cfg->name, cfg, entries_out, max_entries);
     } else if (strstr(cfg->name, "CoinGecko") || strstr(cfg->name, "coingecko")) {
         count = parse_coingecko_response(buf.data, cfg->name, entries_out, max_entries);
     } else {
-        /* Generic: try to parse as array of objects with "price"/"value" field */
-        cJSON *root = cJSON_Parse(buf.data);
-        if (root && cJSON_IsArray(root)) {
-            count = parse_binance_response(buf.data, cfg->name, cfg,
-                                            entries_out, max_entries);
-        }
-        if (root) cJSON_Delete(root);
+        /* Fallback: try generic with common field names */
+        count = parse_generic_response(buf.data, cfg, entries_out, max_entries);
     }
 
     free(buf.data);
