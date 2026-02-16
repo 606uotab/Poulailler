@@ -18,8 +18,8 @@
 
 #define MAX_ENTRIES 256
 #define MAX_NEWS    256
-#define NUM_TABS    5
 #define MAX_SEARCH  64
+#define NUM_TABS    6
 
 typedef enum {
     MODE_NORMAL,
@@ -28,20 +28,52 @@ typedef enum {
 } ui_mode_t;
 
 static const char *tab_names[NUM_TABS] = {
-    "Crypto", "Indices", "Commodities", "News", "Custom"
+    "Crypto", "Forex", "Indices", "Commodities", "News", "Custom"
 };
 
 static const mc_category_t tab_categories[NUM_TABS] = {
-    MC_CAT_CRYPTO, MC_CAT_STOCK_INDEX, MC_CAT_COMMODITY,
-    MC_CAT_NEWS, MC_CAT_CUSTOM
+    MC_CAT_CRYPTO, MC_CAT_FOREX, MC_CAT_STOCK_INDEX,
+    MC_CAT_COMMODITY, MC_CAT_NEWS, MC_CAT_CUSTOM
 };
 
-static void draw_header(WINDOW *win)
+static void apply_theme(tui_theme_t theme)
+{
+    if (theme == THEME_LIGHT) {
+        /* Light background: use dark foreground colors */
+        init_pair(CP_UP,     COLOR_GREEN,   -1);
+        init_pair(CP_DOWN,   COLOR_RED,     -1);
+        init_pair(CP_HEADER, COLOR_BLUE,    -1);
+        init_pair(CP_ACTIVE, COLOR_RED,     -1);
+        init_pair(CP_NORMAL, COLOR_BLACK,   -1);
+        init_pair(CP_DIM,    COLOR_WHITE,   -1);
+        init_pair(CP_SEARCH, COLOR_MAGENTA, -1);
+    } else {
+        /* Dark background: use bright foreground colors */
+        init_pair(CP_UP,     COLOR_GREEN,   -1);
+        init_pair(CP_DOWN,   COLOR_RED,     -1);
+        init_pair(CP_HEADER, COLOR_CYAN,    -1);
+        init_pair(CP_ACTIVE, COLOR_YELLOW,  -1);
+        init_pair(CP_NORMAL, COLOR_WHITE,   -1);
+        init_pair(CP_DIM,    COLOR_BLACK,   -1);
+        init_pair(CP_SEARCH, COLOR_MAGENTA, -1);
+    }
+}
+
+static void draw_header(WINDOW *win, tui_theme_t theme)
 {
     int w = getmaxx(win);
     werase(win);
     wattron(win, COLOR_PAIR(CP_HEADER) | A_BOLD);
     mvwprintw(win, 0, 1, "MonitorCrebirth");
+
+    /* Theme indicator */
+    const char *ti = theme == THEME_LIGHT ? "[LIGHT]" : "";
+    if (ti[0]) {
+        wattron(win, COLOR_PAIR(CP_DIM));
+        mvwprintw(win, 0, 17, " %s", ti);
+        wattroff(win, COLOR_PAIR(CP_DIM));
+        wattron(win, COLOR_PAIR(CP_HEADER) | A_BOLD);
+    }
 
     char time_str[32];
     time_t now = time(NULL);
@@ -90,14 +122,12 @@ static void draw_status(WINDOW *win, int entry_count, int news_count,
     mvwhline(win, 0, 0, ACS_HLINE, w);
 
     if (mode == MODE_SEARCH) {
-        /* Search bar takes over the status line */
         panel_draw_search_bar(win, search_query, 1);
     } else if (search_query[0]) {
-        /* Show active filter */
         panel_draw_search_bar(win, search_query, 0);
     } else {
         mvwprintw(win, 1, 1,
-                  "TAB/1-5:switch  j/k:scroll  /:search  Enter:detail  r:refresh  q:quit  |  %d entries  %d news",
+                  "TAB/1-6:switch  j/k:scroll  /:search  Enter:detail  L:theme  r:refresh  q:quit  |  %d entries  %d news",
                   entry_count, news_count);
     }
     wattroff(win, COLOR_PAIR(CP_HEADER));
@@ -113,7 +143,6 @@ static mc_data_entry_t *get_filtered_entry(mc_data_entry_t *entries, int count,
     for (int i = 0; i < count; i++) {
         if (entries[i].category != cat) continue;
         if (filter && filter[0]) {
-            /* Quick case-insensitive check across symbol/display_name/source */
             int match = 0;
             const char *fields[] = { entries[i].symbol, entries[i].display_name, entries[i].source_name };
             for (int f = 0; f < 3; f++) {
@@ -171,7 +200,15 @@ static mc_news_item_t *get_filtered_news(mc_news_item_t *news, int count,
     return NULL;
 }
 
-int tui_run(mc_client_t *client)
+/* News tab index - depends on tab order */
+static int news_tab_index(void)
+{
+    for (int i = 0; i < NUM_TABS; i++)
+        if (tab_categories[i] == MC_CAT_NEWS) return i;
+    return 4;
+}
+
+int tui_run(mc_client_t *client, tui_theme_t theme)
 {
     /* Init ncurses */
     initscr();
@@ -183,13 +220,7 @@ int tui_run(mc_client_t *client)
     if (has_colors()) {
         start_color();
         use_default_colors();
-        init_pair(CP_UP,     COLOR_GREEN,  -1);
-        init_pair(CP_DOWN,   COLOR_RED,    -1);
-        init_pair(CP_HEADER, COLOR_CYAN,   -1);
-        init_pair(CP_ACTIVE, COLOR_YELLOW, -1);
-        init_pair(CP_NORMAL, COLOR_WHITE,  -1);
-        init_pair(CP_DIM,    COLOR_BLACK,  -1);
-        init_pair(CP_SEARCH, COLOR_MAGENTA, -1);
+        apply_theme(theme);
     }
 
     int max_y, max_x;
@@ -204,6 +235,7 @@ int tui_run(mc_client_t *client)
     int scroll_pos = 0;
     int cursor_pos = 0;
     int filtered_total = 0;
+    int news_tab = news_tab_index();
 
     ui_mode_t mode = MODE_NORMAL;
     char search_query[MAX_SEARCH] = {0};
@@ -227,16 +259,13 @@ int tui_run(mc_client_t *client)
         }
 
         /* Draw UI */
-        draw_header(header_win);
+        draw_header(header_win, theme);
         draw_tabs(tab_win, active_tab);
 
         if (mode == MODE_DETAIL) {
-            /* Detail popup overlay on content */
-            if (active_tab == 3) {
-                /* First draw the list behind */
+            if (active_tab == news_tab) {
                 panel_draw_news(content_win, news, news_count,
                                 scroll_pos, search_query, cursor_pos);
-                /* Then overlay detail */
                 mc_news_item_t *sel = get_filtered_news(news, news_count,
                                                          search_query, cursor_pos);
                 if (sel) panel_draw_detail_news(content_win, sel);
@@ -250,7 +279,7 @@ int tui_run(mc_client_t *client)
                 if (sel) panel_draw_detail_entry(content_win, sel);
             }
         } else {
-            if (active_tab == 3) {
+            if (active_tab == news_tab) {
                 filtered_total = panel_draw_news(content_win, news, news_count,
                                                   scroll_pos, search_query, cursor_pos);
             } else {
@@ -266,9 +295,8 @@ int tui_run(mc_client_t *client)
         int ch = getch();
 
         if (mode == MODE_SEARCH) {
-            /* Search mode input handling */
             switch (ch) {
-            case 27: /* ESC - clear search and exit */
+            case 27: /* ESC */
                 search_query[0] = '\0';
                 search_len = 0;
                 mode = MODE_NORMAL;
@@ -277,7 +305,7 @@ int tui_run(mc_client_t *client)
                 break;
 
             case '\n':
-            case '\r': /* Enter - confirm search */
+            case '\r':
                 mode = MODE_NORMAL;
                 cursor_pos = 0;
                 scroll_pos = 0;
@@ -300,7 +328,6 @@ int tui_run(mc_client_t *client)
                 break;
             }
         } else if (mode == MODE_DETAIL) {
-            /* Detail mode - only ESC/q close it */
             switch (ch) {
             case 27:
             case 'q':
@@ -329,7 +356,7 @@ int tui_run(mc_client_t *client)
                 cursor_pos = 0;
                 break;
 
-            case '1': case '2': case '3': case '4': case '5':
+            case '1': case '2': case '3': case '4': case '5': case '6':
                 active_tab = ch - '1';
                 scroll_pos = 0;
                 cursor_pos = 0;
@@ -339,8 +366,7 @@ int tui_run(mc_client_t *client)
             case KEY_DOWN:
                 if (cursor_pos < filtered_total - 1) {
                     cursor_pos++;
-                    /* Auto-scroll if cursor goes below visible area */
-                    int visible_rows = max_y - 4 - 3; /* content_win height - header/separator/scrollbar */
+                    int visible_rows = max_y - 4 - 3;
                     if (cursor_pos >= scroll_pos + visible_rows)
                         scroll_pos = cursor_pos - visible_rows + 1;
                 }
@@ -355,12 +381,12 @@ int tui_run(mc_client_t *client)
                 }
                 break;
 
-            case 'g': /* Go to top */
+            case 'g':
                 cursor_pos = 0;
                 scroll_pos = 0;
                 break;
 
-            case 'G': /* Go to bottom */
+            case 'G':
                 if (filtered_total > 0) {
                     cursor_pos = filtered_total - 1;
                     int visible_rows = max_y - 4 - 3;
@@ -371,12 +397,12 @@ int tui_run(mc_client_t *client)
                 }
                 break;
 
-            case '/': /* Enter search mode */
+            case '/':
                 mode = MODE_SEARCH;
                 search_len = (int)strlen(search_query);
                 break;
 
-            case 27: /* ESC - clear search filter */
+            case 27: /* ESC */
                 if (search_query[0]) {
                     search_query[0] = '\0';
                     search_len = 0;
@@ -386,10 +412,17 @@ int tui_run(mc_client_t *client)
                 break;
 
             case '\n':
-            case '\r': /* Enter - open detail */
+            case '\r':
             case 'o':
                 if (filtered_total > 0)
                     mode = MODE_DETAIL;
+                break;
+
+            case 'L': /* Toggle light/dark theme */
+                theme = (theme == THEME_DARK) ? THEME_LIGHT : THEME_DARK;
+                apply_theme(theme);
+                /* Force full redraw */
+                clearok(curscr, TRUE);
                 break;
 
             case 'r':

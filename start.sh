@@ -36,7 +36,14 @@ case "${1:-both}" in
         echo "Connecting to mc-daemon..."
         exec "$TUI" "${@:2}"
         ;;
+    tui-light)
+        echo "Connecting to mc-daemon (light theme)..."
+        exec "$TUI" --light "${@:2}"
+        ;;
     both)
+        # Pass extra args (like --light) to TUI
+        TUI_ARGS=""
+        for arg in "${@:2}"; do TUI_ARGS="$TUI_ARGS $arg"; done
         echo "Starting mc-daemon in background..."
         "$DAEMON" > "$HOME/.monitorcrebirth/daemon.log" 2>&1 &
         echo $! > "$PIDFILE"
@@ -44,7 +51,7 @@ case "${1:-both}" in
         if kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
             echo "Daemon started (PID $(cat "$PIDFILE"))"
             echo "Launching TUI..."
-            "$TUI"
+            "$TUI" $TUI_ARGS
             # When TUI exits, stop daemon
             echo "Stopping daemon..."
             kill "$(cat "$PIDFILE")" 2>/dev/null
@@ -72,12 +79,19 @@ case "${1:-both}" in
         fi
         ;;
     *)
-        echo "Usage: $0 [daemon|tui|both|stop|status]"
+        echo "Usage: $0 [daemon|tui|tui-light|both|stop|status] [OPTIONS]"
         echo ""
-        echo "  daemon  - Run daemon in foreground"
-        echo "  tui     - Launch TUI client only"
-        echo "  both    - Start daemon + TUI (default)"
-        echo "  stop    - Stop background daemon"
-        echo "  status  - Show daemon status"
+        echo "  daemon     - Run daemon in foreground"
+        echo "  tui        - Launch TUI client only"
+        echo "  tui-light  - Launch TUI in light theme"
+        echo "  both       - Start daemon + TUI (default)"
+        echo "  stop       - Stop background daemon"
+        echo "  status     - Show daemon status"
+        echo ""
+        echo "Options (for tui/both):"
+        echo "  --light    Light terminal theme"
+        echo "  --dark     Dark terminal theme (default)"
+        echo ""
+        echo "Example: $0 both --light"
         ;;
 esac
