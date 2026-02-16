@@ -1,0 +1,54 @@
+# MonitorCrebirth Configuration
+# Copy to ~/.monitorcrebirth/config.toml
+
+[general]
+refresh_interval_sec = 30
+db_path = "~/.monitorcrebirth/monitorcrebirth.db"
+log_level = "info"
+max_items_per_source = 50
+
+[api]
+http_port = 8420
+unix_socket = "~/.monitorcrebirth/mc.sock"
+
+[ui]
+show_borders = true
+default_tab = 0
+tab_names = ["Crypto", "Indices", "Commodities", "News", "Custom"]
+
+# ─── RSS/Atom feeds ───
+
+[[source.rss]]
+name = "CoinTelegraph"
+url = "https://cointelegraph.com/rss"
+category = "crypto"
+refresh_interval_sec = 60
+
+[[source.rss]]
+name = "BBC Business"
+url = "https://feeds.bbci.co.uk/news/business/rss.xml"
+category = "stock_index"
+refresh_interval_sec = 120
+
+# ─── REST API sources ───
+
+[[source.rest]]
+name = "Binance"
+base_url = "https://api.binance.com/api/v3"
+endpoint = "/ticker/24hr"
+method = "GET"
+category = "crypto"
+api_key_header = ""
+api_key = ""
+symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT"]
+refresh_interval_sec = 15
+response_format = "json_array"
+
+# ─── WebSocket sources ───
+
+[[source.websocket]]
+name = "Binance WS"
+url = "wss://stream.binance.com:9443/ws/btcusdt@ticker"
+category = "crypto"
+subscribe_message = ""
+reconnect_interval_sec = 5
