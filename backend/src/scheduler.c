@@ -68,14 +68,8 @@ static void update_snapshot(mc_scheduler_t *sched)
         sched->entry_count += n;
     }
 
-    sched->news_count = 0;
-    for (int cat = MC_CAT_CRYPTO; cat <= MC_CAT_CUSTOM; cat++) {
-        int remaining = MAX_SNAPSHOT_NEWS - sched->news_count;
-        if (remaining <= 0) break;
-        int n = mc_db_get_latest_news(sched->db, cat,
-                    &sched->news[sched->news_count], remaining);
-        sched->news_count += n;
-    }
+    sched->news_count = mc_db_get_all_latest_news(sched->db,
+                            sched->news, MAX_SNAPSHOT_NEWS);
 
     pthread_rwlock_unlock(&sched->snapshot_lock);
 }

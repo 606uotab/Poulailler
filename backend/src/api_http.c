@@ -66,8 +66,8 @@ static enum MHD_Result send_json(struct MHD_Connection *conn, int status, cJSON 
 static enum MHD_Result handle_entries(mc_api_http_t *api,
                                        struct MHD_Connection *conn)
 {
-    mc_data_entry_t entries[256];
-    int n = mc_scheduler_get_entries(api->sched, entries, 256);
+    mc_data_entry_t entries[512];
+    int n = mc_scheduler_get_entries(api->sched, entries, 512);
 
     /* Filter by query params */
     const char *cat_filter = MHD_lookup_connection_value(
@@ -94,8 +94,8 @@ static enum MHD_Result handle_entries(mc_api_http_t *api,
 static enum MHD_Result handle_news(mc_api_http_t *api,
                                     struct MHD_Connection *conn)
 {
-    mc_news_item_t news[256];
-    int n = mc_scheduler_get_news(api->sched, news, 256);
+    mc_news_item_t news[512];
+    int n = mc_scheduler_get_news(api->sched, news, 512);
 
     const char *cat_filter = MHD_lookup_connection_value(
         conn, MHD_GET_ARGUMENT_KIND, "category");

@@ -299,6 +299,55 @@ int mc_db_get_latest_news(mc_db_t *db, mc_category_t cat,
     return count;
 }
 
+int mc_db_get_all_latest_news(mc_db_t *db,
+                               mc_news_item_t *out, int max_count)
+{
+    const char *sql =
+        "SELECT id,title,source,url,summary,category,published_at,fetched_at "
+        "FROM news_items "
+        "ORDER BY published_at DESC LIMIT ?";
+
+    pthread_mutex_lock(&db->mutex);
+    sqlite3_stmt *stmt;
+    int rc = sqlite3_prepare_v2(db->handle, sql, -1, &stmt, NULL);
+    if (rc != SQLITE_OK) {
+        pthread_mutex_unlock(&db->mutex);
+        return 0;
+    }
+
+    sqlite3_bind_int(stmt, 1, max_count);
+
+    int count = 0;
+    while (count < max_count && sqlite3_step(stmt) == SQLITE_ROW) {
+        mc_news_item_t *n = &out[count];
+        memset(n, 0, sizeof(*n));
+
+        n->id = sqlite3_column_int64(stmt, 0);
+
+        const char *s;
+        s = (const char *)sqlite3_column_text(stmt, 1);
+        if (s) strncpy(n->title, s, MC_MAX_TITLE - 1);
+
+        s = (const char *)sqlite3_column_text(stmt, 2);
+        if (s) strncpy(n->source, s, MC_MAX_SOURCE - 1);
+
+        s = (const char *)sqlite3_column_text(stmt, 3);
+        if (s) strncpy(n->url, s, MC_MAX_URL - 1);
+
+        s = (const char *)sqlite3_column_text(stmt, 4);
+        if (s) strncpy(n->summary, s, MC_MAX_SUMMARY - 1);
+
+        n->category = sqlite3_column_int(stmt, 5);
+        n->published_at = sqlite3_column_int64(stmt, 6);
+        n->fetched_at = sqlite3_column_int64(stmt, 7);
+
+        count++;
+    }
+    sqlite3_finalize(stmt);
+    pthread_mutex_unlock(&db->mutex);
+    return count;
+}
+
 int mc_db_get_entry_history(mc_db_t *db, const char *symbol,
                             mc_data_entry_t *out, int max_count)
 {

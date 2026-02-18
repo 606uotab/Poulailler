@@ -17,6 +17,8 @@ int mc_db_get_latest_entries(mc_db_t *db, mc_category_t cat,
                              mc_data_entry_t *out, int max_count);
 int mc_db_get_latest_news(mc_db_t *db, mc_category_t cat,
                           mc_news_item_t *out, int max_count);
+int mc_db_get_all_latest_news(mc_db_t *db,
+                               mc_news_item_t *out, int max_count);
 int mc_db_get_entry_history(mc_db_t *db, const char *symbol,
                             mc_data_entry_t *out, int max_count);
 
