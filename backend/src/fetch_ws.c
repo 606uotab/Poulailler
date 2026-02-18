@@ -13,6 +13,8 @@
 struct mc_ws_conn {
     mc_ws_source_cfg_t  cfg;
     mc_db_t            *db;
+    mc_ws_on_data_fn    on_data;
+    void               *on_data_ctx;
     pthread_t           thread;
     volatile int        running;
     volatile int        connected;
@@ -83,8 +85,11 @@ static int ws_callback(struct lws *wsi, enum lws_callback_reasons reason,
         entry.timestamp = time(NULL);
         entry.fetched_at = time(NULL);
 
-        if (entry.symbol[0] && entry.value > 0)
+        if (entry.symbol[0] && entry.value > 0) {
             mc_db_insert_entry(conn->db, &entry);
+            if (conn->on_data)
+                conn->on_data(conn->on_data_ctx);
+        }
 
         cJSON_Delete(root);
         break;
@@ -204,13 +209,16 @@ static void *ws_thread_func(void *arg)
     return NULL;
 }
 
-mc_ws_conn_t *mc_ws_connect(const mc_ws_source_cfg_t *cfg, mc_db_t *db)
+mc_ws_conn_t *mc_ws_connect(const mc_ws_source_cfg_t *cfg, mc_db_t *db,
+                             mc_ws_on_data_fn on_data, void *on_data_ctx)
 {
     mc_ws_conn_t *conn = calloc(1, sizeof(*conn));
     if (!conn) return NULL;
 
     conn->cfg = *cfg;
     conn->db = db;
+    conn->on_data = on_data;
+    conn->on_data_ctx = on_data_ctx;
     conn->running = 1;
 
     if (pthread_create(&conn->thread, NULL, ws_thread_func, conn) != 0) {

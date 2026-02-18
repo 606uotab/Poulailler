@@ -239,6 +239,13 @@ mc_scheduler_t *mc_scheduler_create(const mc_config_t *cfg, mc_db_t *db)
     return sched;
 }
 
+/* Callback from WS threads when new data arrives */
+static void ws_data_callback(void *userdata)
+{
+    mc_scheduler_t *sched = userdata;
+    update_snapshot(sched);
+}
+
 int mc_scheduler_start(mc_scheduler_t *sched)
 {
     sched->running = 1;
@@ -259,10 +266,13 @@ int mc_scheduler_start(mc_scheduler_t *sched)
 
     /* Start WebSocket connections */
     for (int i = 0; i < sched->cfg->ws_count; i++) {
-        sched->ws_conns[sched->ws_count] = mc_ws_connect(
-            &sched->cfg->ws_sources[i], sched->db);
-        if (sched->ws_conns[sched->ws_count])
+        mc_ws_conn_t *conn = mc_ws_connect(
+            &sched->cfg->ws_sources[i], sched->db,
+            ws_data_callback, sched);
+        if (conn) {
+            sched->ws_conns[sched->ws_count] = conn;
             sched->ws_count++;
+        }
     }
 
     /* Start pruning thread */

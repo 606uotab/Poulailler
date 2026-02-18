@@ -178,6 +178,9 @@ int mc_client_get_news(mc_client_t *c, mc_news_item_t *out, int max)
         v = cJSON_GetObjectItem(item, "category");
         if (v && v->valuestring) news->category = cat_from_str(v->valuestring);
 
+        v = cJSON_GetObjectItem(item, "summary");
+        if (v && v->valuestring) strncpy(news->summary, v->valuestring, MC_MAX_SUMMARY - 1);
+
         v = cJSON_GetObjectItem(item, "published_at");
         if (v) news->published_at = (time_t)v->valuedouble;
 

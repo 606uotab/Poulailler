@@ -4,6 +4,7 @@
 #include <curl/curl.h>
 #include <cJSON.h>
 #include <string.h>
+#include <strings.h>
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
@@ -227,38 +228,78 @@ static int parse_generic_response(const char *json,
                 count++;
         }
     }
-    /* If data is an object, treat each key as a symbol (CoinGecko-style) */
+    /* If data is an object, check if it's a single flat entry or object-of-objects */
     else if (cJSON_IsObject(data)) {
-        cJSON *item = NULL;
-        cJSON_ArrayForEach(item, data) {
-            if (count >= max_entries) break;
-            if (!item->string) continue;
+        const char *price_key = cfg->field_price[0] ? cfg->field_price : "price";
+        cJSON *direct_price = cJSON_GetObjectItemCaseSensitive(data, price_key);
 
-            mc_data_entry_t *e = &out[count];
+        if (direct_price && !cJSON_IsObject(direct_price)) {
+            /* Single flat object (e.g., LNmarkets ticker) */
+            mc_data_entry_t *e = &out[0];
             memset(e, 0, sizeof(*e));
 
             strncpy(e->source_name, cfg->name, MC_MAX_SOURCE - 1);
             e->source_type = MC_SOURCE_REST;
             e->category = cfg->category;
-            strncpy(e->symbol, item->string, MC_MAX_SYMBOL - 1);
 
-            if (cJSON_IsObject(item)) {
-                e->value = json_get_double(item,
-                    cfg->field_price[0] ? cfg->field_price : "usd");
-                e->change_pct = json_get_double(item,
-                    cfg->field_change[0] ? cfg->field_change : "usd_24h_change");
-                e->volume = json_get_double(item,
-                    cfg->field_volume[0] ? cfg->field_volume : "usd_24h_vol");
-            } else if (cJSON_IsNumber(item)) {
-                e->value = item->valuedouble;
-            }
+            const char *sym = json_get_string(data,
+                cfg->field_symbol[0] ? cfg->field_symbol : "symbol");
+            if (sym)
+                strncpy(e->symbol, sym, MC_MAX_SYMBOL - 1);
+            else if (cfg->symbol_count > 0)
+                strncpy(e->symbol, cfg->symbols[0], MC_MAX_SYMBOL - 1);
+            else
+                strncpy(e->symbol, cfg->name, MC_MAX_SYMBOL - 1);
+
+            const char *name = json_get_string(data,
+                cfg->field_name[0] ? cfg->field_name : "name");
+            if (name) strncpy(e->display_name, name, MC_MAX_NAME - 1);
+
+            e->value = json_get_double(data, price_key);
+            e->change_pct = json_get_double(data,
+                cfg->field_change[0] ? cfg->field_change : "change_percent");
+            e->volume = json_get_double(data,
+                cfg->field_volume[0] ? cfg->field_volume : "volume");
 
             strncpy(e->currency, "USD", MC_MAX_SYMBOL - 1);
             e->timestamp = time(NULL);
             e->fetched_at = time(NULL);
 
-            if (e->symbol[0] && !isnan(e->value) && e->value != 0)
-                count++;
+            if (e->symbol[0] && !isnan(e->value))
+                count = 1;
+        } else {
+            /* Object-of-objects: each key is a symbol (CoinGecko-style) */
+            cJSON *item = NULL;
+            cJSON_ArrayForEach(item, data) {
+                if (count >= max_entries) break;
+                if (!item->string) continue;
+
+                mc_data_entry_t *e = &out[count];
+                memset(e, 0, sizeof(*e));
+
+                strncpy(e->source_name, cfg->name, MC_MAX_SOURCE - 1);
+                e->source_type = MC_SOURCE_REST;
+                e->category = cfg->category;
+                strncpy(e->symbol, item->string, MC_MAX_SYMBOL - 1);
+
+                if (cJSON_IsObject(item)) {
+                    e->value = json_get_double(item,
+                        cfg->field_price[0] ? cfg->field_price : "usd");
+                    e->change_pct = json_get_double(item,
+                        cfg->field_change[0] ? cfg->field_change : "usd_24h_change");
+                    e->volume = json_get_double(item,
+                        cfg->field_volume[0] ? cfg->field_volume : "usd_24h_vol");
+                } else if (cJSON_IsNumber(item)) {
+                    e->value = item->valuedouble;
+                }
+
+                strncpy(e->currency, "USD", MC_MAX_SYMBOL - 1);
+                e->timestamp = time(NULL);
+                e->fetched_at = time(NULL);
+
+                if (e->symbol[0] && !isnan(e->value) && e->value != 0)
+                    count++;
+            }
         }
     }
 
@@ -299,6 +340,12 @@ int mc_fetch_rest(const mc_rest_source_cfg_t *cfg,
     if (headers)
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
+    /* Apply HTTP method from config */
+    if (strcasecmp(cfg->method, "POST") == 0) {
+        curl_easy_setopt(curl, CURLOPT_POST, 1L);
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "");
+    }
+
     CURLcode res = curl_easy_perform(curl);
     curl_easy_cleanup(curl);
     if (headers) curl_slist_free_all(headers);
@@ -318,7 +365,8 @@ int mc_fetch_rest(const mc_rest_source_cfg_t *cfg,
         count = parse_generic_response(buf.data, cfg, entries_out, max_entries);
     } else if (strstr(cfg->name, "Binance") || strstr(cfg->name, "binance")) {
         count = parse_binance_response(buf.data, cfg->name, cfg, entries_out, max_entries);
-    } else if (strstr(cfg->name, "CoinGecko") || strstr(cfg->name, "coingecko")) {
+    } else if ((strstr(cfg->name, "CoinGecko") || strstr(cfg->name, "coingecko"))
+               && strcmp(cfg->response_format, "json_object") == 0) {
         count = parse_coingecko_response(buf.data, cfg->name, entries_out, max_entries);
     } else {
         /* Fallback: try generic with common field names */
