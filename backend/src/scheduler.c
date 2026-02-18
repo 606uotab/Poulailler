@@ -60,7 +60,7 @@ static void update_snapshot(mc_scheduler_t *sched)
     pthread_rwlock_wrlock(&sched->snapshot_lock);
 
     sched->entry_count = 0;
-    for (int cat = MC_CAT_CRYPTO; cat <= MC_CAT_CUSTOM; cat++) {
+    for (int cat = MC_CAT_CRYPTO; cat <= MC_CAT_CRYPTO_EXCHANGE; cat++) {
         int remaining = MAX_SNAPSHOT_ENTRIES - sched->entry_count;
         if (remaining <= 0) break;
         int n = mc_db_get_latest_entries(sched->db, cat,
@@ -165,7 +165,7 @@ static void *rss_thread_func(void *arg)
 static void *rest_thread_func(void *arg)
 {
     mc_scheduler_t *sched = arg;
-    mc_data_entry_t entries[64];
+    mc_data_entry_t entries[MAX_SNAPSHOT_ENTRIES];
 
     while (sched->running) {
         int any_fetched = 0;
@@ -179,7 +179,7 @@ static void *rest_thread_func(void *arg)
                 continue;
             }
 
-            int n = mc_fetch_rest(src, entries, 64);
+            int n = mc_fetch_rest(src, entries, MAX_SNAPSHOT_ENTRIES);
             if (n > 0) {
                 for (int j = 0; j < n; j++)
                     mc_db_insert_entry(sched->db, &entries[j]);

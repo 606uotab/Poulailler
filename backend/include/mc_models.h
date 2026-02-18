@@ -25,7 +25,8 @@ typedef enum {
     MC_CAT_COMMODITY,
     MC_CAT_FOREX,
     MC_CAT_NEWS,
-    MC_CAT_CUSTOM
+    MC_CAT_CUSTOM,
+    MC_CAT_CRYPTO_EXCHANGE
 } mc_category_t;
 
 typedef struct {

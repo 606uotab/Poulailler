@@ -85,10 +85,14 @@ int panel_draw_entries(WINDOW *win, mc_data_entry_t *entries, int count,
     getmaxyx(win, h, w);
     werase(win);
 
-    /* Header row */
+    /* Header row - adapt volume column label by category */
+    const char *vol_label = "Volume";
+    if (cat_filter == MC_CAT_CRYPTO) vol_label = "MCap";
+    else if (cat_filter == MC_CAT_CRYPTO_EXCHANGE) vol_label = "Vol/BTC";
+
     wattron(win, COLOR_PAIR(CP_HEADER) | A_BOLD);
     mvwprintw(win, 0, 1, " %-14s %12s %8s %8s  %-12s  %s",
-              "Symbol", "Price", "Chg%", "Volume", "Source", "Updated");
+              "Symbol", "Price", "Chg%", vol_label, "Source", "Updated");
     wattroff(win, COLOR_PAIR(CP_HEADER) | A_BOLD);
 
     wattron(win, COLOR_PAIR(CP_DIM));

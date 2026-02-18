@@ -146,6 +146,8 @@ static void parse_rest_sources(toml_table_t *source_tbl, mc_config_t *cfg)
         if (d.ok) { safe_copy(s->field_volume, d.u.s, 64); free(d.u.s); }
         d = toml_string_in(t, "field_name");
         if (d.ok) { safe_copy(s->field_name, d.u.s, 64); free(d.u.s); }
+        d = toml_string_in(t, "field_prev_close");
+        if (d.ok) { safe_copy(s->field_prev_close, d.u.s, 64); free(d.u.s); }
         d = toml_string_in(t, "data_path");
         if (d.ok) { safe_copy(s->data_path, d.u.s, 64); free(d.u.s); }
 

@@ -230,7 +230,7 @@ int mc_db_get_latest_entries(mc_db_t *db, mc_category_t cat,
         "  GROUP BY symbol,source_name) g "
         "ON d.symbol=g.symbol AND d.source_name=g.source_name "
         "  AND d.fetched_at=g.max_fa "
-        "ORDER BY d.symbol LIMIT ?";
+        "ORDER BY d.volume DESC, d.symbol LIMIT ?";
 
     pthread_mutex_lock(&db->mutex);
     sqlite3_stmt *stmt;

@@ -37,6 +37,7 @@ typedef struct {
     char          field_change[64];     /* e.g. "priceChangePercent" */
     char          field_volume[64];     /* e.g. "volume" */
     char          field_name[64];       /* e.g. "name" for display */
+    char          field_prev_close[64]; /* e.g. "chartPreviousClose" - auto-compute change */
     char          data_path[64];        /* e.g. "data.items" - path to array */
 } mc_rest_source_cfg_t;
 

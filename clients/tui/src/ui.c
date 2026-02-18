@@ -16,10 +16,11 @@
 #define CP_DIM     6
 #define CP_SEARCH  7
 
-#define MAX_ENTRIES 256
-#define MAX_NEWS    256
+#define MAX_ENTRIES 512
+#define MAX_NEWS    512
 #define MAX_SEARCH  64
-#define NUM_TABS    6
+#define NUM_TABS    7
+#define PAGE_SIZE   25
 
 typedef enum {
     MODE_NORMAL,
@@ -28,12 +29,12 @@ typedef enum {
 } ui_mode_t;
 
 static const char *tab_names[NUM_TABS] = {
-    "Crypto", "Forex", "Indices", "Commodities", "News", "Custom"
+    "Crypto", "Exchanges", "Forex", "Indices", "Commodities", "News", "Custom"
 };
 
 static const mc_category_t tab_categories[NUM_TABS] = {
-    MC_CAT_CRYPTO, MC_CAT_FOREX, MC_CAT_STOCK_INDEX,
-    MC_CAT_COMMODITY, MC_CAT_NEWS, MC_CAT_CUSTOM
+    MC_CAT_CRYPTO, MC_CAT_CRYPTO_EXCHANGE, MC_CAT_FOREX,
+    MC_CAT_STOCK_INDEX, MC_CAT_COMMODITY, MC_CAT_NEWS, MC_CAT_CUSTOM
 };
 
 static void apply_theme(tui_theme_t theme)
@@ -114,7 +115,8 @@ static void draw_tabs(WINDOW *win, int active_tab)
 }
 
 static void draw_status(WINDOW *win, int entry_count, int news_count,
-                         ui_mode_t mode, const char *search_query)
+                         ui_mode_t mode, const char *search_query,
+                         int cursor_pos, int filtered_total)
 {
     int w = getmaxx(win);
     werase(win);
@@ -126,9 +128,11 @@ static void draw_status(WINDOW *win, int entry_count, int news_count,
     } else if (search_query[0]) {
         panel_draw_search_bar(win, search_query, 0);
     } else {
+        int page = filtered_total > 0 ? (cursor_pos / PAGE_SIZE) + 1 : 0;
+        int pages = filtered_total > 0 ? ((filtered_total - 1) / PAGE_SIZE) + 1 : 0;
         mvwprintw(win, 1, 1,
-                  "TAB/1-6:switch  j/k:scroll  /:search  Enter:detail  L:theme  r:refresh  q:quit  |  %d entries  %d news",
-                  entry_count, news_count);
+                  "1-7:tab  j/k:scroll  n/p:page  /:search  Enter:detail  L:theme  r:refresh  q:quit  |  pg %d/%d  %d items",
+                  page, pages, filtered_total);
     }
     wattroff(win, COLOR_PAIR(CP_HEADER));
     wrefresh(win);
@@ -289,7 +293,8 @@ int tui_run(mc_client_t *client, tui_theme_t theme)
             }
         }
 
-        draw_status(status_win, entry_count, news_count, mode, search_query);
+        draw_status(status_win, entry_count, news_count, mode, search_query,
+                    cursor_pos, filtered_total);
 
         /* Handle input */
         int ch = getch();
@@ -356,10 +361,12 @@ int tui_run(mc_client_t *client, tui_theme_t theme)
                 cursor_pos = 0;
                 break;
 
-            case '1': case '2': case '3': case '4': case '5': case '6':
-                active_tab = ch - '1';
-                scroll_pos = 0;
-                cursor_pos = 0;
+            case '1': case '2': case '3': case '4': case '5': case '6': case '7':
+                if (ch - '1' < NUM_TABS) {
+                    active_tab = ch - '1';
+                    scroll_pos = 0;
+                    cursor_pos = 0;
+                }
                 break;
 
             case 'j':
@@ -379,6 +386,26 @@ int tui_run(mc_client_t *client, tui_theme_t theme)
                     if (cursor_pos < scroll_pos)
                         scroll_pos = cursor_pos;
                 }
+                break;
+
+            case KEY_NPAGE: /* Page Down */
+            case 'n':
+                if (filtered_total > 0) {
+                    cursor_pos += PAGE_SIZE;
+                    if (cursor_pos >= filtered_total)
+                        cursor_pos = filtered_total - 1;
+                    int visible_rows = max_y - 4 - 3;
+                    if (cursor_pos >= scroll_pos + visible_rows)
+                        scroll_pos = cursor_pos - visible_rows + 1;
+                }
+                break;
+
+            case KEY_PPAGE: /* Page Up */
+            case 'p':
+                cursor_pos -= PAGE_SIZE;
+                if (cursor_pos < 0) cursor_pos = 0;
+                if (cursor_pos < scroll_pos)
+                    scroll_pos = cursor_pos;
                 break;
 
             case 'g':

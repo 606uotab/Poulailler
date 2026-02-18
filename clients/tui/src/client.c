@@ -66,11 +66,12 @@ void mc_client_destroy(mc_client_t *c)
 static mc_category_t cat_from_str(const char *s)
 {
     if (!s) return MC_CAT_CUSTOM;
-    if (strcmp(s, "crypto") == 0)      return MC_CAT_CRYPTO;
-    if (strcmp(s, "stock_index") == 0)  return MC_CAT_STOCK_INDEX;
-    if (strcmp(s, "commodity") == 0)    return MC_CAT_COMMODITY;
-    if (strcmp(s, "forex") == 0)        return MC_CAT_FOREX;
-    if (strcmp(s, "news") == 0)         return MC_CAT_NEWS;
+    if (strcmp(s, "crypto") == 0)           return MC_CAT_CRYPTO;
+    if (strcmp(s, "stock_index") == 0)      return MC_CAT_STOCK_INDEX;
+    if (strcmp(s, "commodity") == 0)        return MC_CAT_COMMODITY;
+    if (strcmp(s, "forex") == 0)            return MC_CAT_FOREX;
+    if (strcmp(s, "news") == 0)             return MC_CAT_NEWS;
+    if (strcmp(s, "crypto_exchange") == 0)  return MC_CAT_CRYPTO_EXCHANGE;
     return MC_CAT_CUSTOM;
 }
 

@@ -152,7 +152,7 @@ static cJSON *json_navigate(cJSON *root, const char *path)
     return current;
 }
 
-/* Extract a double from a JSON value (handles both number and string) */
+/* Extract a double from a JSON value (handles number, string, and array[0]) */
 static double json_get_double(cJSON *obj, const char *key)
 {
     if (!key || !key[0]) return NAN;
@@ -160,6 +160,12 @@ static double json_get_double(cJSON *obj, const char *key)
     if (!v) return NAN;
     if (cJSON_IsNumber(v)) return v->valuedouble;
     if (cJSON_IsString(v) && v->valuestring) return atof(v->valuestring);
+    if (cJSON_IsArray(v)) {
+        cJSON *first = cJSON_GetArrayItem(v, 0);
+        if (first && cJSON_IsNumber(first)) return first->valuedouble;
+        if (first && cJSON_IsString(first) && first->valuestring)
+            return atof(first->valuestring);
+    }
     return NAN;
 }
 
@@ -215,6 +221,13 @@ static int parse_generic_response(const char *json,
 
             e->change_pct = json_get_double(item,
                 cfg->field_change[0] ? cfg->field_change : "change_percent");
+
+            /* Auto-compute change_pct from previous close if configured */
+            if (isnan(e->change_pct) && !isnan(e->value) && cfg->field_prev_close[0]) {
+                double prev = json_get_double(item, cfg->field_prev_close);
+                if (!isnan(prev) && prev > 0)
+                    e->change_pct = ((e->value - prev) / prev) * 100.0;
+            }
 
             e->volume = json_get_double(item,
                 cfg->field_volume[0] ? cfg->field_volume : "volume");
@@ -283,10 +296,25 @@ static int parse_generic_response(const char *json,
                 strncpy(e->symbol, item->string, MC_MAX_SYMBOL - 1);
 
                 if (cJSON_IsObject(item)) {
+                    const char *sym = json_get_string(item,
+                        cfg->field_symbol[0] ? cfg->field_symbol : NULL);
+                    if (sym) strncpy(e->symbol, sym, MC_MAX_SYMBOL - 1);
+
+                    const char *name = json_get_string(item,
+                        cfg->field_name[0] ? cfg->field_name : NULL);
+                    if (name) strncpy(e->display_name, name, MC_MAX_NAME - 1);
+
                     e->value = json_get_double(item,
                         cfg->field_price[0] ? cfg->field_price : "usd");
                     e->change_pct = json_get_double(item,
                         cfg->field_change[0] ? cfg->field_change : "usd_24h_change");
+
+                    if (isnan(e->change_pct) && !isnan(e->value) && cfg->field_prev_close[0]) {
+                        double prev = json_get_double(item, cfg->field_prev_close);
+                        if (!isnan(prev) && prev > 0)
+                            e->change_pct = ((e->value - prev) / prev) * 100.0;
+                    }
+
                     e->volume = json_get_double(item,
                         cfg->field_volume[0] ? cfg->field_volume : "usd_24h_vol");
                 } else if (cJSON_IsNumber(item)) {

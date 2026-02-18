@@ -13,7 +13,7 @@ unix_socket = "~/.monitorcrebirth/mc.sock"
 [ui]
 show_borders = true
 default_tab = 0
-tab_names = ["Crypto", "Indices", "Commodities", "News", "Custom"]
+tab_names = ["Crypto", "Exchanges", "Forex", "Indices", "Commodities", "News", "Custom"]
 
 # ═══════════════════════════════════════════
 #  RSS / Atom Feeds
@@ -155,19 +155,24 @@ symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "A
 refresh_interval_sec = 15
 response_format = "json_array"
 
-# ─── CoinGecko (Crypto - top 10 par market cap) ───
+# ─── CoinGecko (top 250 crypto par market cap) ───
 
 [[source.rest]]
-name = "CoinGecko"
+name = "CoinGecko Markets"
 base_url = "https://api.coingecko.com/api/v3"
-endpoint = "/simple/price"
+endpoint = "/coins/markets"
 method = "GET"
 category = "crypto"
 api_key_header = ""
 api_key = ""
-params = "ids=bitcoin,ethereum,solana,ripple,dogecoin,cardano,avalanche-2,polkadot,chainlink,polygon&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true"
-refresh_interval_sec = 45
-response_format = "json_object"
+params = "vs_currency=usd&order=market_cap_desc&per_page=250&page=1&sparkline=false&price_change_percentage=24h"
+refresh_interval_sec = 60
+response_format = "json_array"
+field_symbol = "symbol"
+field_name = "name"
+field_price = "current_price"
+field_change = "price_change_percentage_24h"
+field_volume = "market_cap"
 
 # ─── LNmarkets (Bitcoin Lightning futures) ───
 
@@ -185,23 +190,40 @@ refresh_interval_sec = 30
 response_format = "json_object"
 field_price = "lastPrice"
 
-# ─── Indices boursiers via CoinGecko (pour les exchanges) ───
+# ─── CoinGecko Exchanges (crypto exchange volumes) ───
 
 [[source.rest]]
 name = "CoinGecko Exchanges"
 base_url = "https://api.coingecko.com/api/v3"
 endpoint = "/exchanges"
 method = "GET"
-category = "stock_index"
+category = "crypto_exchange"
 api_key_header = ""
 api_key = ""
-params = "per_page=5"
+params = "per_page=20"
 refresh_interval_sec = 120
 response_format = "json_array"
 field_symbol = "id"
 field_name = "name"
 field_price = "trust_score"
 field_volume = "trade_volume_24h_btc"
+
+# ─── Yahoo Finance (indices boursiers mondiaux, v8 spark) ───
+
+[[source.rest]]
+name = "Yahoo Indices"
+base_url = "https://query2.finance.yahoo.com/v8/finance"
+endpoint = "/spark"
+method = "GET"
+category = "stock_index"
+api_key_header = ""
+api_key = ""
+params = "symbols=^GSPC,^IXIC,^DJI,^FTSE,^GDAXI,^FCHI,^N225,^HSI,^STOXX50E&range=1d&interval=1d"
+refresh_interval_sec = 60
+response_format = "json_object"
+field_symbol = "symbol"
+field_price = "close"
+field_prev_close = "chartPreviousClose"
 
 # ═══════════════════════════════════════════
 #  WebSocket Sources (temps réel)
