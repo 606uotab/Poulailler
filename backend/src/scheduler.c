@@ -12,8 +12,8 @@
 
 #define MAX_SNAPSHOT_ENTRIES 512
 #define MAX_SNAPSHOT_NEWS   512
-#define PRUNE_INTERVAL_SEC  300   /* Prune DB every 5 minutes */
-#define PRUNE_MAX_AGE_SEC   86400 /* Keep data for 24 hours */
+#define PRUNE_INTERVAL_SEC  120   /* Prune DB every 2 minutes */
+#define PRUNE_MAX_AGE_SEC   3600  /* Keep data for 1 hour */
 #define MAX_BACKOFF_SEC     300   /* Max retry backoff: 5 min */
 
 /* Per-source tracking for retry backoff */
@@ -60,21 +60,34 @@ struct mc_scheduler {
 
 static void update_snapshot(mc_scheduler_t *sched)
 {
-    pthread_rwlock_wrlock(&sched->snapshot_lock);
+    /* Query DB into temp buffers WITHOUT holding the snapshot lock,
+       so API readers are never blocked by slow DB queries */
+    mc_data_entry_t *tmp_entries = malloc(MAX_SNAPSHOT_ENTRIES * sizeof(mc_data_entry_t));
+    mc_news_item_t *tmp_news = malloc(MAX_SNAPSHOT_NEWS * sizeof(mc_news_item_t));
+    if (!tmp_entries || !tmp_news) { free(tmp_entries); free(tmp_news); return; }
 
-    sched->entry_count = 0;
+    int tmp_entry_count = 0;
     for (int cat = MC_CAT_CRYPTO; cat <= MC_CAT_CRYPTO_EXCHANGE; cat++) {
-        int remaining = MAX_SNAPSHOT_ENTRIES - sched->entry_count;
+        int remaining = MAX_SNAPSHOT_ENTRIES - tmp_entry_count;
         if (remaining <= 0) break;
         int n = mc_db_get_latest_entries(sched->db, cat,
-                    &sched->entries[sched->entry_count], remaining);
-        sched->entry_count += n;
+                    &tmp_entries[tmp_entry_count], remaining);
+        tmp_entry_count += n;
     }
 
-    sched->news_count = mc_db_get_all_latest_news(sched->db,
-                            sched->news, MAX_SNAPSHOT_NEWS);
+    int tmp_news_count = mc_db_get_all_latest_news(sched->db,
+                            tmp_news, MAX_SNAPSHOT_NEWS);
 
+    /* Hold write lock only for the fast memcpy */
+    pthread_rwlock_wrlock(&sched->snapshot_lock);
+    memcpy(sched->entries, tmp_entries, tmp_entry_count * sizeof(mc_data_entry_t));
+    sched->entry_count = tmp_entry_count;
+    memcpy(sched->news, tmp_news, tmp_news_count * sizeof(mc_news_item_t));
+    sched->news_count = tmp_news_count;
     pthread_rwlock_unlock(&sched->snapshot_lock);
+
+    free(tmp_entries);
+    free(tmp_news);
 }
 
 static int should_skip_source(source_health_t *h, int force)

@@ -35,6 +35,7 @@ static const char *SCHEMA_SQL =
     "CREATE INDEX IF NOT EXISTS idx_entries_symbol ON data_entries(symbol);"
     "CREATE INDEX IF NOT EXISTS idx_entries_source ON data_entries(source_name);"
     "CREATE INDEX IF NOT EXISTS idx_entries_ts     ON data_entries(timestamp DESC);"
+    "CREATE INDEX IF NOT EXISTS idx_entries_cat_sym_src_fa ON data_entries(category, symbol, source_name, fetched_at DESC);"
 
     "CREATE TABLE IF NOT EXISTS news_items ("
     "  id           INTEGER PRIMARY KEY AUTOINCREMENT,"

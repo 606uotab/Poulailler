@@ -85,7 +85,7 @@ static void draw_header(WINDOW *win, tui_theme_t theme)
     mvwprintw(win, 0, w - (int)strlen(time_str) - 1, "%s", time_str);
 
     wattroff(win, COLOR_PAIR(CP_HEADER) | A_BOLD);
-    wrefresh(win);
+    wnoutrefresh(win);
 }
 
 static void draw_tabs(WINDOW *win, int active_tab)
@@ -112,7 +112,7 @@ static void draw_tabs(WINDOW *win, int active_tab)
     }
 
     (void)w;
-    wrefresh(win);
+    wnoutrefresh(win);
 }
 
 static void draw_status(WINDOW *win, ui_mode_t mode,
@@ -136,7 +136,7 @@ static void draw_status(WINDOW *win, ui_mode_t mode,
                   page, pages, filtered_total);
     }
     wattroff(win, COLOR_PAIR(CP_HEADER));
-    wrefresh(win);
+    wnoutrefresh(win);
 }
 
 /* Get the nth filtered entry (by category + search) */
@@ -264,10 +264,12 @@ int tui_run(mc_client_t *client, tui_theme_t theme)
     int tick = 0;
 
     while (running) {
-        /* Fetch data every 4 ticks (~2 seconds) */
+        /* Fetch data every 4 ticks (~2 seconds) — keep old data on failure */
         if (tick % 4 == 0) {
-            entry_count = mc_client_get_entries(client, entries, MAX_ENTRIES);
-            news_count = mc_client_get_news(client, news, MAX_NEWS);
+            int n = mc_client_get_entries(client, entries, MAX_ENTRIES);
+            if (n > 0) entry_count = n;
+            n = mc_client_get_news(client, news, MAX_NEWS);
+            if (n > 0) news_count = n;
         }
 
         /* Draw UI */
@@ -302,6 +304,10 @@ int tui_run(mc_client_t *client, tui_theme_t theme)
         }
 
         draw_status(status_win, mode, search_query, cursor_pos, filtered_total);
+
+        /* Flush all window updates in a single
+           screen write to avoid flicker */
+        doupdate();
 
         /* Handle input */
         int ch = getch();

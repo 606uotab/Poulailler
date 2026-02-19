@@ -38,9 +38,11 @@ static char *http_get(const char *url)
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buf);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 3L);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 2L);
 
     CURLcode res = curl_easy_perform(curl);
+
     curl_easy_cleanup(curl);
 
     if (res != CURLE_OK) {

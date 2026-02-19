@@ -122,7 +122,7 @@ int panel_draw_entries(WINDOW *win, mc_data_entry_t *entries, int count,
         const char *arrow = e->change_pct >= 0 ? "+" : "";
         const char *indicator = e->change_pct >= 0 ? "\u25B2" : "\u25BC";
 
-        char vol_str[16], time_str[16];
+        char vol_str[16], time_str[32];
         format_volume(e->volume, vol_str, sizeof(vol_str));
         time_ago(e->fetched_at, time_str, sizeof(time_str));
 
@@ -167,7 +167,7 @@ int panel_draw_entries(WINDOW *win, mc_data_entry_t *entries, int count,
         wattroff(win, COLOR_PAIR(CP_DIM));
     }
 
-    wrefresh(win);
+    wnoutrefresh(win);
     return filtered_count;
 }
 
@@ -267,7 +267,7 @@ int panel_draw_news(WINDOW *win, mc_news_item_t *news, int count,
         wattroff(win, COLOR_PAIR(CP_DIM));
     }
 
-    wrefresh(win);
+    wnoutrefresh(win);
     return filtered_count;
 }
 
@@ -380,7 +380,7 @@ void panel_draw_detail_entry(WINDOW *win, const mc_data_entry_t *entry)
     wattroff(win, COLOR_PAIR(CP_DIM));
 
     (void)vw;
-    wrefresh(win);
+    wnoutrefresh(win);
 }
 
 void panel_draw_detail_news(WINDOW *win, const mc_news_item_t *news)
@@ -458,14 +458,13 @@ void panel_draw_detail_news(WINDOW *win, const mc_news_item_t *news)
     mvwprintw(win, by + bh - 2, lx, "Press ESC or q to close");
     wattroff(win, COLOR_PAIR(CP_DIM));
 
-    wrefresh(win);
+    wnoutrefresh(win);
 }
 
 /* ── Search bar ───────────────────────────────────────────────── */
 
 void panel_draw_search_bar(WINDOW *win, const char *query, int active)
 {
-    int w = getmaxx(win);
     werase(win);
 
     if (active) {
@@ -487,5 +486,5 @@ void panel_draw_search_bar(WINDOW *win, const char *query, int active)
         wattroff(win, COLOR_PAIR(CP_SEARCH));
     }
 
-    wrefresh(win);
+    wnoutrefresh(win);
 }
