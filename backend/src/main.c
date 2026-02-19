@@ -15,7 +15,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-static volatile int g_running = 1;
+static volatile sig_atomic_t g_running = 1;
 
 static void signal_handler(int sig)
 {
@@ -164,9 +164,13 @@ int main(int argc, char **argv)
             MC_LOG_WARN("Unix socket API failed to start, continuing without it");
     }
 
-    /* Setup signal handlers */
-    signal(SIGINT, signal_handler);
-    signal(SIGTERM, signal_handler);
+    /* Setup signal handlers (sigaction is thread-safe, signal() is not) */
+    struct sigaction sa = {0};
+    sa.sa_handler = signal_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(SIGINT, &sa, NULL);
+    sigaction(SIGTERM, &sa, NULL);
 
     MC_LOG_INFO("Daemon ready. Press Ctrl+C to stop.");
 

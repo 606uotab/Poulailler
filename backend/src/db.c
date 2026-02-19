@@ -72,6 +72,9 @@ mc_db_t *mc_db_open(const char *path)
         return NULL;
     }
 
+    /* Allow threads to wait up to 5s for DB lock instead of failing immediately */
+    sqlite3_busy_timeout(db->handle, 5000);
+
     MC_LOG_INFO("Database opened: %s", path);
     return db;
 }

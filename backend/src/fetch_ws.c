@@ -188,11 +188,27 @@ static void *ws_thread_func(void *arg)
             continue;
         }
 
-        /* Service loop */
-        while (conn->running && conn->lws_ctx) {
-            int n = lws_service(conn->lws_ctx, 100);
+        /* Service loop — break on disconnect or shutdown */
+        int was_connected = 0;
+        time_t connect_started = time(NULL);
+
+        while (conn->running) {
+            int n = lws_service(conn->lws_ctx, 250);
             if (n < 0) break;
-            if (!conn->connected && !conn->running) break;
+
+            if (conn->connected) {
+                was_connected = 1;
+            } else if (was_connected) {
+                /* Was connected but lost connection — reconnect */
+                MC_LOG_WARN("WS %s: connection lost, will reconnect",
+                            conn->cfg.name);
+                break;
+            } else if (time(NULL) - connect_started > 15) {
+                /* Never connected after 15s — give up and retry */
+                MC_LOG_WARN("WS %s: connect timeout, will retry",
+                            conn->cfg.name);
+                break;
+            }
         }
 
         lws_context_destroy(conn->lws_ctx);

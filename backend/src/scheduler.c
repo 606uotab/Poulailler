@@ -53,6 +53,9 @@ struct mc_scheduler {
 
     volatile int       running;
     volatile int       force_refresh;
+
+    /* WS snapshot debounce */
+    volatile time_t    ws_last_snapshot;
 };
 
 static void update_snapshot(mc_scheduler_t *sched)
@@ -233,11 +236,17 @@ mc_scheduler_t *mc_scheduler_create(const mc_config_t *cfg, mc_db_t *db)
     return sched;
 }
 
-/* Callback from WS threads when new data arrives */
+/* Callback from WS threads when new data arrives (debounced) */
 static void ws_data_callback(void *userdata)
 {
     mc_scheduler_t *sched = userdata;
-    update_snapshot(sched);
+    time_t now = time(NULL);
+
+    /* Debounce: update snapshot at most once per 2 seconds */
+    if (now - sched->ws_last_snapshot >= 2) {
+        sched->ws_last_snapshot = now;
+        update_snapshot(sched);
+    }
 }
 
 int mc_scheduler_start(mc_scheduler_t *sched)
