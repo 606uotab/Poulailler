@@ -131,6 +131,9 @@ int mc_client_get_entries(mc_client_t *c, mc_data_entry_t *out, int max)
         v = cJSON_GetObjectItem(item, "timestamp");
         if (v) e->timestamp = (time_t)v->valuedouble;
 
+        v = cJSON_GetObjectItem(item, "fetched_at");
+        if (v) e->fetched_at = (time_t)v->valuedouble;
+
         count++;
     }
 
@@ -184,6 +187,9 @@ int mc_client_get_news(mc_client_t *c, mc_news_item_t *out, int max)
 
         v = cJSON_GetObjectItem(item, "published_at");
         if (v) news->published_at = (time_t)v->valuedouble;
+
+        v = cJSON_GetObjectItem(item, "fetched_at");
+        if (v) news->fetched_at = (time_t)v->valuedouble;
 
         count++;
     }
