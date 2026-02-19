@@ -111,12 +111,33 @@ int panel_draw_entries(WINDOW *win, mc_data_entry_t *entries, int count,
     }
 
     int vis_idx = 0;
+    char last_source[MC_MAX_SOURCE] = "";
     for (int i = 0; i < count && row < h - 1; i++) {
         mc_data_entry_t *e = &entries[i];
         if (e->category != cat_filter) continue;
         if (!entry_matches(e, search_filter)) continue;
 
-        if (vis_idx < scroll_pos) { vis_idx++; continue; }
+        if (vis_idx < scroll_pos) {
+            strncpy(last_source, e->source_name, MC_MAX_SOURCE - 1);
+            vis_idx++;
+            continue;
+        }
+
+        /* Region separator header for grouped categories */
+        if ((cat_filter == MC_CAT_STOCK_INDEX || cat_filter == MC_CAT_FOREX) &&
+            strcmp(e->source_name, last_source) != 0 && row < h - 2) {
+            wattron(win, COLOR_PAIR(CP_HEADER) | A_BOLD);
+            mvwprintw(win, row, 1, " %s ", e->source_name);
+            int name_len = (int)strlen(e->source_name) + 3;
+            wattron(win, COLOR_PAIR(CP_DIM));
+            mvwhline(win, row, name_len + 1, ACS_HLINE, w - name_len - 1);
+            wattroff(win, COLOR_PAIR(CP_DIM));
+            wattroff(win, COLOR_PAIR(CP_HEADER) | A_BOLD);
+            row++;
+        }
+        strncpy(last_source, e->source_name, MC_MAX_SOURCE - 1);
+
+        if (row >= h - 1) break;
 
         int cp = e->change_pct >= 0 ? CP_UP : CP_DOWN;
         const char *arrow = e->change_pct >= 0 ? "+" : "";

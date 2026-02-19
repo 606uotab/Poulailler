@@ -201,18 +201,48 @@ field_name = "name"
 field_price = "trust_score"
 field_volume = "trade_volume_24h_btc"
 
-# ─── Yahoo Finance (indices boursiers mondiaux, v8 spark) ───
+# ─── Yahoo Finance Indices by Region (v8 spark) ───
 
 [[source.rest]]
-name = "Yahoo Indices"
-base_url = "https://query2.finance.yahoo.com/v8/finance"
+name = "Americas"
+base_url = "https://query1.finance.yahoo.com/v8/finance"
 endpoint = "/spark"
 method = "GET"
 category = "stock_index"
 api_key_header = ""
 api_key = ""
-params = "symbols=^GSPC,^IXIC,^DJI,^FTSE,^GDAXI,^FCHI,^N225,^HSI,^STOXX50E&range=1d&interval=1d"
-refresh_interval_sec = 60
+params = "symbols=^GSPC,^DJI,^IXIC,^RUT,^GSPTSE,^BVSP,^MXX&range=1d&interval=1d"
+refresh_interval_sec = 120
+response_format = "json_object"
+field_symbol = "symbol"
+field_price = "close"
+field_prev_close = "chartPreviousClose"
+
+[[source.rest]]
+name = "Europe"
+base_url = "https://query1.finance.yahoo.com/v8/finance"
+endpoint = "/spark"
+method = "GET"
+category = "stock_index"
+api_key_header = ""
+api_key = ""
+params = "symbols=^FTSE,^GDAXI,^FCHI,^STOXX50E,^AEX,^IBEX,^SSMI,FTSEMIB.MI&range=1d&interval=1d"
+refresh_interval_sec = 120
+response_format = "json_object"
+field_symbol = "symbol"
+field_price = "close"
+field_prev_close = "chartPreviousClose"
+
+[[source.rest]]
+name = "Asia-Pacific"
+base_url = "https://query1.finance.yahoo.com/v8/finance"
+endpoint = "/spark"
+method = "GET"
+category = "stock_index"
+api_key_header = ""
+api_key = ""
+params = "symbols=^N225,^HSI,000001.SS,^KS11,^TWII,^STI,^AXJO,^BSESN,^NSEI,^NZ50&range=1d&interval=1d"
+refresh_interval_sec = 120
 response_format = "json_object"
 field_symbol = "symbol"
 field_price = "close"
