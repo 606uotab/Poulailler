@@ -32,7 +32,7 @@ int main(int argc, char **argv)
                 "  --dark        Dark terminal theme (default)\n"
                 "  --help        Show this help\n\n"
                 "Keybindings:\n"
-                "  TAB/1-6       Switch tabs\n"
+                "  TAB/1-7       Switch tabs\n"
                 "  j/k           Scroll / move cursor\n"
                 "  g/G           Jump to top/bottom\n"
                 "  /             Search/filter\n"

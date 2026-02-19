@@ -3,6 +3,7 @@
 #include "client.h"
 
 #include <ncurses.h>
+#include <stdio.h>
 #include <string.h>
 #include <time.h>
 #include <stdlib.h>
@@ -114,8 +115,8 @@ static void draw_tabs(WINDOW *win, int active_tab)
     wrefresh(win);
 }
 
-static void draw_status(WINDOW *win, int entry_count, int news_count,
-                         ui_mode_t mode, const char *search_query,
+static void draw_status(WINDOW *win, ui_mode_t mode,
+                         const char *search_query,
                          int cursor_pos, int filtered_total)
 {
     int w = getmaxx(win);
@@ -230,6 +231,13 @@ int tui_run(mc_client_t *client, tui_theme_t theme)
     int max_y, max_x;
     getmaxyx(stdscr, max_y, max_x);
 
+    /* Minimum terminal size: 20 cols x 8 rows */
+    if (max_y < 8 || max_x < 20) {
+        endwin();
+        fprintf(stderr, "Terminal too small (%dx%d). Minimum: 20x8\n", max_x, max_y);
+        return 1;
+    }
+
     WINDOW *header_win  = newwin(1, max_x, 0, 0);
     WINDOW *tab_win     = newwin(1, max_x, 1, 0);
     WINDOW *content_win = newwin(max_y - 4, max_x, 2, 0);
@@ -293,8 +301,7 @@ int tui_run(mc_client_t *client, tui_theme_t theme)
             }
         }
 
-        draw_status(status_win, entry_count, news_count, mode, search_query,
-                    cursor_pos, filtered_total);
+        draw_status(status_win, mode, search_query, cursor_pos, filtered_total);
 
         /* Handle input */
         int ch = getch();
@@ -459,11 +466,13 @@ int tui_run(mc_client_t *client, tui_theme_t theme)
 
             case KEY_RESIZE:
                 getmaxyx(stdscr, max_y, max_x);
-                wresize(header_win, 1, max_x);
-                wresize(tab_win, 1, max_x);
-                wresize(content_win, max_y - 4, max_x);
-                mvwin(status_win, max_y - 2, 0);
-                wresize(status_win, 2, max_x);
+                if (max_y >= 8 && max_x >= 20) {
+                    wresize(header_win, 1, max_x);
+                    wresize(tab_win, 1, max_x);
+                    wresize(content_win, max_y - 4, max_x);
+                    mvwin(status_win, max_y - 2, 0);
+                    wresize(status_win, 2, max_x);
+                }
                 break;
             }
         }

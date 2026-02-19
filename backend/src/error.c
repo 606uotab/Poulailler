@@ -17,7 +17,7 @@ static const char *error_strings[] = {
 
 const char *mc_error_str(mc_error_t err)
 {
-    if (err < 0 || err > MC_ERR_NOT_FOUND)
+    if ((int)err < 0 || err > MC_ERR_NOT_FOUND)
         return "Unknown error";
     return error_strings[err];
 }
