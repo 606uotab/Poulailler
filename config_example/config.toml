@@ -218,6 +218,36 @@ field_symbol = "symbol"
 field_price = "close"
 field_prev_close = "chartPreviousClose"
 
+# ─── Forex (Frankfurter / ECB rates, no key) ───
+
+[[source.rest]]
+name = "Frankfurter USD"
+base_url = "https://api.frankfurter.dev/v1"
+endpoint = "/latest"
+method = "GET"
+category = "forex"
+api_key_header = ""
+api_key = ""
+params = "base=USD&symbols=EUR,GBP,JPY,CHF,CAD,AUD,CNY,SEK,NZD,NOK,DKK,SGD,HKD,KRW,MXN,ZAR,BRL,INR,TRY,PLN"
+refresh_interval_sec = 300
+response_format = "json_object"
+data_path = "rates"
+field_price = ""
+
+[[source.rest]]
+name = "Frankfurter EUR"
+base_url = "https://api.frankfurter.dev/v1"
+endpoint = "/latest"
+method = "GET"
+category = "forex"
+api_key_header = ""
+api_key = ""
+params = "base=EUR&symbols=USD,GBP,JPY,CHF,CAD,AUD,CNY,SEK,NZD,NOK"
+refresh_interval_sec = 300
+response_format = "json_object"
+data_path = "rates"
+field_price = ""
+
 # ─── Precious Metals (gold-api.com, public, no key) ───
 
 [[source.rest]]
