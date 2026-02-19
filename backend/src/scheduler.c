@@ -124,6 +124,14 @@ static void sleep_interruptible(mc_scheduler_t *sched, int seconds)
     }
 }
 
+static int source_due(source_health_t *h, int interval_sec, int force)
+{
+    if (force) return 1;
+    if (h->last_attempt == 0) return 1; /* Never fetched */
+    time_t now = time(NULL);
+    return (now - h->last_attempt >= interval_sec);
+}
+
 static void *rss_thread_func(void *arg)
 {
     mc_scheduler_t *sched = arg;
@@ -136,10 +144,10 @@ static void *rss_thread_func(void *arg)
             const mc_rss_source_cfg_t *src = &sched->cfg->rss_sources[i];
             source_health_t *h = &sched->rss_health[i];
 
-            if (should_skip_source(h, sched->force_refresh)) {
-                MC_LOG_DEBUG("Skipping %s (backoff %ds)", src->name, h->backoff_sec);
+            if (should_skip_source(h, sched->force_refresh))
                 continue;
-            }
+            if (!source_due(h, src->refresh_interval_sec, sched->force_refresh))
+                continue;
 
             int n = mc_fetch_rss(src, items, 64);
             if (n > 0) {
@@ -159,7 +167,8 @@ static void *rss_thread_func(void *arg)
         if (any_fetched)
             update_snapshot(sched);
 
-        sleep_interruptible(sched, sched->cfg->refresh_interval_sec);
+        /* Sleep 5s between checks (per-source intervals handle timing) */
+        sleep_interruptible(sched, 5);
     }
 
     return NULL;
@@ -177,10 +186,10 @@ static void *rest_thread_func(void *arg)
             const mc_rest_source_cfg_t *src = &sched->cfg->rest_sources[i];
             source_health_t *h = &sched->rest_health[i];
 
-            if (should_skip_source(h, sched->force_refresh)) {
-                MC_LOG_DEBUG("Skipping %s (backoff %ds)", src->name, h->backoff_sec);
+            if (should_skip_source(h, sched->force_refresh))
                 continue;
-            }
+            if (!source_due(h, src->refresh_interval_sec, sched->force_refresh))
+                continue;
 
             int n = mc_fetch_rest(src, entries, MAX_SNAPSHOT_ENTRIES);
             if (n > 0) {
@@ -200,7 +209,8 @@ static void *rest_thread_func(void *arg)
         if (any_fetched)
             update_snapshot(sched);
 
-        sleep_interruptible(sched, sched->cfg->refresh_interval_sec);
+        /* Sleep 5s between checks (per-source intervals handle timing) */
+        sleep_interruptible(sched, 5);
     }
 
     return NULL;

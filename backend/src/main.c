@@ -42,13 +42,22 @@ static void ensure_dir(const char *path)
 {
     char tmp[512];
     strncpy(tmp, path, sizeof(tmp) - 1);
+    tmp[sizeof(tmp) - 1] = '\0';
 
-    /* Find last / and create parent dir */
+    /* Find last / to get parent directory */
     char *slash = strrchr(tmp, '/');
-    if (slash) {
-        *slash = '\0';
-        mkdir(tmp, 0755);
+    if (!slash) return;
+    *slash = '\0';
+
+    /* Create all intermediate directories */
+    for (char *p = tmp + 1; *p; p++) {
+        if (*p == '/') {
+            *p = '\0';
+            mkdir(tmp, 0755);
+            *p = '/';
+        }
     }
+    mkdir(tmp, 0755);
 }
 
 static mc_log_level_t parse_log_level(const char *s)

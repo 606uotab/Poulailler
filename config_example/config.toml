@@ -4,7 +4,6 @@
 refresh_interval_sec = 30
 db_path = "~/.monitorcrebirth/monitorcrebirth.db"
 log_level = "info"
-max_items_per_source = 50
 
 [api]
 http_port = 8420
@@ -50,12 +49,6 @@ refresh_interval_sec = 90
 [[source.rss]]
 name = "BBC Business"
 url = "https://feeds.bbci.co.uk/news/business/rss.xml"
-category = "stock_index"
-refresh_interval_sec = 120
-
-[[source.rss]]
-name = "Reuters Business"
-url = "https://www.reutersagency.com/feed/?best-topics=business-finance"
 category = "stock_index"
 refresh_interval_sec = 120
 
@@ -151,7 +144,7 @@ method = "GET"
 category = "crypto"
 api_key_header = ""
 api_key = ""
-symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "AVAXUSDT", "DOTUSDT", "LINKUSDT", "MATICUSDT"]
+symbols = ["XRPUSDT", "DOGEUSDT", "ADAUSDT", "AVAXUSDT", "DOTUSDT", "LINKUSDT", "MATICUSDT"]
 refresh_interval_sec = 15
 response_format = "json_array"
 
@@ -224,6 +217,64 @@ response_format = "json_object"
 field_symbol = "symbol"
 field_price = "close"
 field_prev_close = "chartPreviousClose"
+
+# ─── Precious Metals (gold-api.com, public, no key) ───
+
+[[source.rest]]
+name = "Gold"
+base_url = "https://api.gold-api.com"
+endpoint = "/price/XAU"
+method = "GET"
+category = "commodity"
+params = ""
+symbols = ["XAU"]
+refresh_interval_sec = 120
+response_format = "json_object"
+field_symbol = "symbol"
+field_name = "name"
+field_price = "price"
+
+[[source.rest]]
+name = "Silver"
+base_url = "https://api.gold-api.com"
+endpoint = "/price/XAG"
+method = "GET"
+category = "commodity"
+params = ""
+symbols = ["XAG"]
+refresh_interval_sec = 120
+response_format = "json_object"
+field_symbol = "symbol"
+field_name = "name"
+field_price = "price"
+
+[[source.rest]]
+name = "Platinum"
+base_url = "https://api.gold-api.com"
+endpoint = "/price/XPT"
+method = "GET"
+category = "commodity"
+params = ""
+symbols = ["XPT"]
+refresh_interval_sec = 120
+response_format = "json_object"
+field_symbol = "symbol"
+field_name = "name"
+field_price = "price"
+
+[[source.rest]]
+name = "Palladium"
+base_url = "https://api.gold-api.com"
+endpoint = "/price/XPD"
+method = "GET"
+category = "commodity"
+params = ""
+symbols = ["XPD"]
+refresh_interval_sec = 120
+response_format = "json_object"
+field_symbol = "symbol"
+field_name = "name"
+field_price = "price"
 
 # ═══════════════════════════════════════════
 #  WebSocket Sources (temps réel)

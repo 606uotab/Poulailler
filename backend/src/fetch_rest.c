@@ -144,10 +144,11 @@ static cJSON *json_navigate(cJSON *root, const char *path)
     buf[sizeof(buf) - 1] = '\0';
 
     cJSON *current = root;
-    char *tok = strtok(buf, ".");
+    char *saveptr = NULL;
+    char *tok = strtok_r(buf, ".", &saveptr);
     while (tok && current) {
         current = cJSON_GetObjectItemCaseSensitive(current, tok);
-        tok = strtok(NULL, ".");
+        tok = strtok_r(NULL, ".", &saveptr);
     }
     return current;
 }
