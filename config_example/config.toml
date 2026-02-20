@@ -201,7 +201,22 @@ field_name = "name"
 field_price = "trust_score"
 field_volume = "trade_volume_24h_btc"
 
-# ─── Yahoo Finance Indices by Region (v8 spark) ───
+# ─── Yahoo Finance Indices by Region (v8 spark, 66 indices) ───
+
+[[source.rest]]
+name = "US"
+base_url = "https://query1.finance.yahoo.com/v8/finance"
+endpoint = "/spark"
+method = "GET"
+category = "stock_index"
+api_key_header = ""
+api_key = ""
+params = "symbols=^GSPC,^DJI,^IXIC,^NDX,^NYA,^RUT,^SP400,^SP600,^VIX,^SOX&range=1d&interval=1d"
+refresh_interval_sec = 120
+response_format = "json_object"
+field_symbol = "symbol"
+field_price = "close"
+field_prev_close = "chartPreviousClose"
 
 [[source.rest]]
 name = "Americas"
@@ -211,7 +226,7 @@ method = "GET"
 category = "stock_index"
 api_key_header = ""
 api_key = ""
-params = "symbols=^GSPC,^DJI,^IXIC,^RUT,^GSPTSE,^BVSP,^MXX&range=1d&interval=1d"
+params = "symbols=^GSPTSE,^BVSP,^MXX,^MERV,^IPSA,^SPCOSLCP&range=1d&interval=1d"
 refresh_interval_sec = 120
 response_format = "json_object"
 field_symbol = "symbol"
@@ -219,14 +234,14 @@ field_price = "close"
 field_prev_close = "chartPreviousClose"
 
 [[source.rest]]
-name = "Europe"
+name = "Europe West"
 base_url = "https://query1.finance.yahoo.com/v8/finance"
 endpoint = "/spark"
 method = "GET"
 category = "stock_index"
 api_key_header = ""
 api_key = ""
-params = "symbols=^FTSE,^GDAXI,^FCHI,^STOXX50E,^AEX,^IBEX,^SSMI,FTSEMIB.MI&range=1d&interval=1d"
+params = "symbols=^FTSE,^FTMC,^GDAXI,^FCHI,^STOXX50E,^AEX,^IBEX,^SSMI,FTSEMIB.MI&range=1d&interval=1d"
 refresh_interval_sec = 120
 response_format = "json_object"
 field_symbol = "symbol"
@@ -234,14 +249,104 @@ field_price = "close"
 field_prev_close = "chartPreviousClose"
 
 [[source.rest]]
-name = "Asia-Pacific"
+name = "Europe North"
 base_url = "https://query1.finance.yahoo.com/v8/finance"
 endpoint = "/spark"
 method = "GET"
 category = "stock_index"
 api_key_header = ""
 api_key = ""
-params = "symbols=^N225,^HSI,000001.SS,^KS11,^TWII,^STI,^AXJO,^BSESN,^NSEI,^NZ50&range=1d&interval=1d"
+params = "symbols=^STOXX,^N100,^BFX,PSI20.LS,^ISEQ,^ATX,^OMXS30,^OMXC25,^OMXH25,^OMXN40&range=1d&interval=1d"
+refresh_interval_sec = 120
+response_format = "json_object"
+field_symbol = "symbol"
+field_price = "close"
+field_prev_close = "chartPreviousClose"
+
+[[source.rest]]
+name = "Europe East"
+base_url = "https://query1.finance.yahoo.com/v8/finance"
+endpoint = "/spark"
+method = "GET"
+category = "stock_index"
+api_key_header = ""
+api_key = ""
+params = "symbols=XU100.IS,WIG20.WA,^BUX.BD,FPXAA.PR,^BET.RO&range=1d&interval=1d"
+refresh_interval_sec = 120
+response_format = "json_object"
+field_symbol = "symbol"
+field_price = "close"
+field_prev_close = "chartPreviousClose"
+
+[[source.rest]]
+name = "East Asia"
+base_url = "https://query1.finance.yahoo.com/v8/finance"
+endpoint = "/spark"
+method = "GET"
+category = "stock_index"
+api_key_header = ""
+api_key = ""
+params = "symbols=^N225,^HSI,000001.SS,000300.SS,399001.SZ,399006.SZ,^KS11,^TWII&range=1d&interval=1d"
+refresh_interval_sec = 120
+response_format = "json_object"
+field_symbol = "symbol"
+field_price = "close"
+field_prev_close = "chartPreviousClose"
+
+[[source.rest]]
+name = "South & SE Asia"
+base_url = "https://query1.finance.yahoo.com/v8/finance"
+endpoint = "/spark"
+method = "GET"
+category = "stock_index"
+api_key_header = ""
+api_key = ""
+params = "symbols=^BSESN,^NSEI,^STI,^JKSE,^KLSE,^SET.BK,PSEI.PS&range=1d&interval=1d"
+refresh_interval_sec = 120
+response_format = "json_object"
+field_symbol = "symbol"
+field_price = "close"
+field_prev_close = "chartPreviousClose"
+
+[[source.rest]]
+name = "Oceania"
+base_url = "https://query1.finance.yahoo.com/v8/finance"
+endpoint = "/spark"
+method = "GET"
+category = "stock_index"
+api_key_header = ""
+api_key = ""
+params = "symbols=^AXJO,^AORD,^NZ50&range=1d&interval=1d"
+refresh_interval_sec = 120
+response_format = "json_object"
+field_symbol = "symbol"
+field_price = "close"
+field_prev_close = "chartPreviousClose"
+
+[[source.rest]]
+name = "Middle East"
+base_url = "https://query1.finance.yahoo.com/v8/finance"
+endpoint = "/spark"
+method = "GET"
+category = "stock_index"
+api_key_header = ""
+api_key = ""
+params = "symbols=^TA125.TA,^TASI.SR,FADGI.FGI,DFMGI.AE,^BKA.KW&range=1d&interval=1d"
+refresh_interval_sec = 120
+response_format = "json_object"
+field_symbol = "symbol"
+field_price = "close"
+field_prev_close = "chartPreviousClose"
+
+[[source.rest]]
+name = "Africa"
+base_url = "https://query1.finance.yahoo.com/v8/finance"
+endpoint = "/spark"
+method = "GET"
+category = "stock_index"
+api_key_header = ""
+api_key = ""
+params = "symbols=^J203.JO,^J200.JO,^CASE30&range=1d&interval=1d"
 refresh_interval_sec = 120
 response_format = "json_object"
 field_symbol = "symbol"
