@@ -22,6 +22,13 @@ static const struct { const char *sym; const char *name; } g_index_names[] = {
     {"^SP600",     "S&P SmallCap"},
     {"^VIX",       "CBOE VIX"},
     {"^SOX",       "PHLX Semi."},
+    /* US Extended */
+    {"^OEX",       "S&P 100"},
+    {"^RUI",       "Russell 1000"},
+    {"^RUA",       "Russell 3000"},
+    {"^DJT",       "DJ Transport"},
+    {"^DJU",       "DJ Utilities"},
+    {"^W1DOW",     "DJ Global"},
     /* Americas */
     {"^GSPTSE",    "S&P/TSX"},
     {"^BVSP",      "Bovespa"},
@@ -31,6 +38,7 @@ static const struct { const char *sym; const char *name; } g_index_names[] = {
     {"^SPCOSLCP",  "Colombia"},
     /* Europe West */
     {"^FTSE",      "FTSE 100"},
+    {"^FTAS",      "FTSE All-Share"},
     {"^FTMC",      "FTSE 250"},
     {"^GDAXI",     "DAX"},
     {"^FCHI",      "CAC 40"},
@@ -56,18 +64,31 @@ static const struct { const char *sym; const char *name; } g_index_names[] = {
     {"^BUX.BD",    "BUX"},
     {"FPXAA.PR",   "PX Prague"},
     {"^BET.RO",    "BET"},
+    {"GD.AT",      "Athens Gen."},
+    /* Europe Extra */
+    {"^MDAXI",     "MDAX"},
+    {"^TECDAX",    "TecDAX"},
+    {"^CN20",      "CAC Next 20"},
+    {"OSEBX.OL",   "Oslo Bors"},
+    {"^OMXI15",    "OMX Iceland"},
+    {"^OMXRGI",    "OMX Riga"},
+    {"^OMXVGI",    "OMX Vilnius"},
     /* East Asia */
     {"^N225",      "Nikkei 225"},
     {"^HSI",       "Hang Seng"},
+    {"^HSCE",      "HS China Ent."},
+    {"HSTECH.HK",  "HS TECH"},
     {"000001.SS",  "Shanghai"},
     {"000300.SS",  "CSI 300"},
     {"399001.SZ",  "Shenzhen"},
     {"399006.SZ",  "ChiNext"},
     {"^KS11",      "KOSPI"},
     {"^TWII",      "TAIEX"},
+    {"^KQ11",      "KOSDAQ"},
     /* South & SE Asia */
     {"^BSESN",     "Sensex"},
     {"^NSEI",      "Nifty 50"},
+    {"^NSEBANK",   "Nifty Bank"},
     {"^STI",       "STI"},
     {"^JKSE",      "IDX Comp."},
     {"^KLSE",      "KLCI"},
@@ -83,10 +104,12 @@ static const struct { const char *sym; const char *name; } g_index_names[] = {
     {"FADGI.FGI",  "ADX Abu Dhabi"},
     {"DFMGI.AE",   "DFM Dubai"},
     {"^BKA.KW",    "Kuwait"},
+    {"^GNRI.QA",   "QE Qatar"},
     /* Africa */
     {"^J203.JO",   "JSE All Share"},
     {"^J200.JO",   "JSE Top 40"},
     {"^CASE30",    "EGX 30"},
+    {"^NQMA",      "Morocco"},
     {NULL, NULL}
 };
 
