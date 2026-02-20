@@ -110,6 +110,12 @@ static const struct { const char *sym; const char *name; } g_index_names[] = {
     {"^J200.JO",   "JSE Top 40"},
     {"^CASE30",    "EGX 30"},
     {"^NQMA",      "Morocco"},
+    /* Yahoo chart-only indices */
+    {"^VNINDEX.VN","VN-Index"},
+    {"^SPBLPGPT",  "Peru General"},
+    {"^DJBH",      "DJ Bahrain"},
+    {"^DWJOD",     "DJ Jordan"},
+    {"IMOEX.ME",   "MOEX Russia"},
     {NULL, NULL}
 };
 
@@ -247,7 +253,8 @@ static int parse_coingecko_response(const char *json, const char *source_name,
     return count;
 }
 
-/* Navigate a JSON object by dot-separated path, e.g. "data.items" */
+/* Navigate a JSON object by dot-separated path, e.g. "data.items" or "chart.result.0.meta"
+ * Numeric segments are treated as array indices. */
 static cJSON *json_navigate(cJSON *root, const char *path)
 {
     if (!path || !path[0]) return root;
@@ -260,7 +267,11 @@ static cJSON *json_navigate(cJSON *root, const char *path)
     char *saveptr = NULL;
     char *tok = strtok_r(buf, ".", &saveptr);
     while (tok && current) {
-        current = cJSON_GetObjectItemCaseSensitive(current, tok);
+        /* Numeric segment → array index */
+        if (tok[0] >= '0' && tok[0] <= '9' && cJSON_IsArray(current))
+            current = cJSON_GetArrayItem(current, atoi(tok));
+        else
+            current = cJSON_GetObjectItemCaseSensitive(current, tok);
         tok = strtok_r(NULL, ".", &saveptr);
     }
     return current;
@@ -385,6 +396,14 @@ static int parse_generic_response(const char *json,
             e->value = json_get_double(data, price_key);
             e->change_pct = json_get_double(data,
                 cfg->field_change[0] ? cfg->field_change : "change_percent");
+
+            /* Auto-compute change_pct from previous close if configured */
+            if (isnan(e->change_pct) && !isnan(e->value) && cfg->field_prev_close[0]) {
+                double prev = json_get_double(data, cfg->field_prev_close);
+                if (!isnan(prev) && prev > 0)
+                    e->change_pct = ((e->value - prev) / prev) * 100.0;
+            }
+
             e->volume = json_get_double(data,
                 cfg->field_volume[0] ? cfg->field_volume : "volume");
 
