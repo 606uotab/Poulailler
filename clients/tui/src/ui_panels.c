@@ -155,9 +155,11 @@ int panel_draw_entries(WINDOW *win, mc_data_entry_t *entries, int count,
             wattron(win, A_DIM);
         }
 
+        const char *label = (e->display_name[0]) ? e->display_name : e->symbol;
+
         wattron(win, COLOR_PAIR(cp));
         mvwprintw(win, row, 1, " %-14s $%11.2f %s%6.2f%% %s %8s  %-12s  %s",
-                  e->symbol, e->value, arrow, e->change_pct,
+                  label, e->value, arrow, e->change_pct,
                   indicator, vol_str, e->source_name, time_str);
         wattroff(win, COLOR_PAIR(cp));
 
@@ -346,7 +348,8 @@ void panel_draw_detail_entry(WINDOW *win, const mc_data_entry_t *entry)
     int by = (wh - bh) / 2;
     if (by < 1) by = 1;
 
-    draw_box(win, by, bx, bh, bw, entry->symbol);
+    const char *title = entry->display_name[0] ? entry->display_name : entry->symbol;
+    draw_box(win, by, bx, bh, bw, title);
 
     int row = by + 2;
     int lx = bx + 2;
@@ -355,7 +358,8 @@ void panel_draw_detail_entry(WINDOW *win, const mc_data_entry_t *entry)
     char buf[128];
 
     detail_label(win, row++, lx, "Symbol:", entry->symbol);
-    detail_label(win, row++, lx, "Display name:", entry->display_name[0] ? entry->display_name : entry->symbol);
+    if (entry->display_name[0])
+        detail_label(win, row++, lx, "Name:", entry->display_name);
 
     snprintf(buf, sizeof(buf), "$%.8g %s", entry->value, entry->currency);
     detail_label(win, row++, lx, "Price:", buf);

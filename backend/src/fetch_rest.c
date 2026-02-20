@@ -9,6 +9,96 @@
 #include <time.h>
 #include <math.h>
 
+/* ── Human-readable names for stock index ticker symbols ── */
+static const struct { const char *sym; const char *name; } g_index_names[] = {
+    /* US */
+    {"^GSPC",      "S&P 500"},
+    {"^DJI",       "Dow Jones"},
+    {"^IXIC",      "NASDAQ"},
+    {"^NDX",       "NASDAQ-100"},
+    {"^NYA",       "NYSE Comp."},
+    {"^RUT",       "Russell 2000"},
+    {"^SP400",     "S&P MidCap 400"},
+    {"^SP600",     "S&P SmallCap"},
+    {"^VIX",       "CBOE VIX"},
+    {"^SOX",       "PHLX Semi."},
+    /* Americas */
+    {"^GSPTSE",    "S&P/TSX"},
+    {"^BVSP",      "Bovespa"},
+    {"^MXX",       "IPC Mexico"},
+    {"^MERV",      "MERVAL"},
+    {"^IPSA",      "IPSA Chile"},
+    {"^SPCOSLCP",  "Colombia"},
+    /* Europe West */
+    {"^FTSE",      "FTSE 100"},
+    {"^FTMC",      "FTSE 250"},
+    {"^GDAXI",     "DAX"},
+    {"^FCHI",      "CAC 40"},
+    {"^STOXX50E",  "Euro Stoxx 50"},
+    {"^AEX",       "AEX"},
+    {"^IBEX",      "IBEX 35"},
+    {"^SSMI",      "SMI"},
+    {"FTSEMIB.MI", "FTSE MIB"},
+    /* Europe North */
+    {"^STOXX",     "STOXX 600"},
+    {"^N100",      "Euronext 100"},
+    {"^BFX",       "BEL 20"},
+    {"PSI20.LS",   "PSI"},
+    {"^ISEQ",      "ISEQ"},
+    {"^ATX",       "ATX"},
+    {"^OMXS30",    "OMX Stockh."},
+    {"^OMXC25",    "OMX Copenh."},
+    {"^OMXH25",    "OMX Helsinki"},
+    {"^OMXN40",    "OMX Nordic"},
+    /* Europe East */
+    {"XU100.IS",   "BIST 100"},
+    {"WIG20.WA",   "WIG 20"},
+    {"^BUX.BD",    "BUX"},
+    {"FPXAA.PR",   "PX Prague"},
+    {"^BET.RO",    "BET"},
+    /* East Asia */
+    {"^N225",      "Nikkei 225"},
+    {"^HSI",       "Hang Seng"},
+    {"000001.SS",  "Shanghai"},
+    {"000300.SS",  "CSI 300"},
+    {"399001.SZ",  "Shenzhen"},
+    {"399006.SZ",  "ChiNext"},
+    {"^KS11",      "KOSPI"},
+    {"^TWII",      "TAIEX"},
+    /* South & SE Asia */
+    {"^BSESN",     "Sensex"},
+    {"^NSEI",      "Nifty 50"},
+    {"^STI",       "STI"},
+    {"^JKSE",      "IDX Comp."},
+    {"^KLSE",      "KLCI"},
+    {"^SET.BK",    "SET"},
+    {"PSEI.PS",    "PSEi"},
+    /* Oceania */
+    {"^AXJO",      "ASX 200"},
+    {"^AORD",      "All Ords"},
+    {"^NZ50",      "NZX 50"},
+    /* Middle East */
+    {"^TA125.TA",  "TA-125"},
+    {"^TASI.SR",   "Tadawul"},
+    {"FADGI.FGI",  "ADX Abu Dhabi"},
+    {"DFMGI.AE",   "DFM Dubai"},
+    {"^BKA.KW",    "Kuwait"},
+    /* Africa */
+    {"^J203.JO",   "JSE All Share"},
+    {"^J200.JO",   "JSE Top 40"},
+    {"^CASE30",    "EGX 30"},
+    {NULL, NULL}
+};
+
+static const char *lookup_index_name(const char *symbol)
+{
+    for (int i = 0; g_index_names[i].sym; i++) {
+        if (strcmp(g_index_names[i].sym, symbol) == 0)
+            return g_index_names[i].name;
+    }
+    return NULL;
+}
+
 typedef struct {
     char  *data;
     size_t size;
@@ -403,6 +493,18 @@ int mc_fetch_rest(const mc_rest_source_cfg_t *cfg,
     }
 
     free(buf.data);
+
+    /* Post-process: fill display_name from lookup table for known indices */
+    if (cfg->category == MC_CAT_STOCK_INDEX) {
+        for (int i = 0; i < count; i++) {
+            if (!entries_out[i].display_name[0]) {
+                const char *name = lookup_index_name(entries_out[i].symbol);
+                if (name)
+                    strncpy(entries_out[i].display_name, name, MC_MAX_NAME - 1);
+            }
+        }
+    }
+
     MC_LOG_INFO("REST %s: got %d entries", cfg->name, count);
     return count;
 }
