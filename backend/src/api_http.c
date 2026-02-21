@@ -66,9 +66,9 @@ static enum MHD_Result send_json(struct MHD_Connection *conn, int status, cJSON 
 static enum MHD_Result handle_entries(mc_api_http_t *api,
                                        struct MHD_Connection *conn)
 {
-    mc_data_entry_t *entries = malloc(512 * sizeof(mc_data_entry_t));
+    mc_data_entry_t *entries = malloc(2048 * sizeof(mc_data_entry_t));
     if (!entries) return MHD_NO;
-    int n = mc_scheduler_get_entries(api->sched, entries, 512);
+    int n = mc_scheduler_get_entries(api->sched, entries, 2048);
 
     /* Filter by query params */
     const char *cat_filter = MHD_lookup_connection_value(

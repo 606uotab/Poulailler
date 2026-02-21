@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include <time.h>
 
-#define MAX_SNAPSHOT_ENTRIES 512
+#define MAX_SNAPSHOT_ENTRIES 2048
 #define MAX_SNAPSHOT_NEWS   512
 #define PRUNE_INTERVAL_SEC  120   /* Prune DB every 2 minutes */
 #define PRUNE_MAX_AGE_SEC   3600  /* Keep data for 1 hour */
@@ -170,7 +170,9 @@ static void *rss_thread_func(void *arg)
                                            MC_SOURCE_RSS, NULL);
                 record_success(h);
                 any_fetched = 1;
-            } else if (n < 0) {
+            } else if (n == 0) {
+                h->last_attempt = time(NULL);
+            } else {
                 mc_db_update_source_status(sched->db, src->name,
                                            MC_SOURCE_RSS, "fetch failed");
                 record_failure(h, src->name);
@@ -190,7 +192,8 @@ static void *rss_thread_func(void *arg)
 static void *rest_thread_func(void *arg)
 {
     mc_scheduler_t *sched = arg;
-    mc_data_entry_t entries[MAX_SNAPSHOT_ENTRIES];
+    mc_data_entry_t *entries = malloc(MAX_SNAPSHOT_ENTRIES * sizeof(mc_data_entry_t));
+    if (!entries) return NULL;
 
     while (sched->running) {
         int any_fetched = 0;
@@ -212,7 +215,10 @@ static void *rest_thread_func(void *arg)
                                            MC_SOURCE_REST, NULL);
                 record_success(h);
                 any_fetched = 1;
-            } else if (n < 0) {
+            } else if (n == 0) {
+                /* Request succeeded but returned no data (e.g. rate-limited) */
+                h->last_attempt = time(NULL);
+            } else {
                 mc_db_update_source_status(sched->db, src->name,
                                            MC_SOURCE_REST, "fetch failed");
                 record_failure(h, src->name);
@@ -226,6 +232,7 @@ static void *rest_thread_func(void *arg)
         sleep_interruptible(sched, 5);
     }
 
+    free(entries);
     return NULL;
 }
 

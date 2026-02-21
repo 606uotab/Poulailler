@@ -17,7 +17,7 @@
 #define CP_DIM     6
 #define CP_SEARCH  7
 
-#define MAX_ENTRIES 512
+#define MAX_ENTRIES 2048
 #define MAX_NEWS    512
 #define MAX_SEARCH  64
 #define NUM_TABS    7

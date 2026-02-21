@@ -62,13 +62,15 @@ static cJSON *handle_request(mc_api_unix_t *api, cJSON *req)
     }
 
     if (strcmp(path, "/api/v1/entries") == 0) {
-        mc_data_entry_t entries[256];
-        int n = mc_scheduler_get_entries(api->sched, entries, 256);
+        mc_data_entry_t *entries = malloc(2048 * sizeof(mc_data_entry_t));
+        if (!entries) return NULL;
+        int n = mc_scheduler_get_entries(api->sched, entries, 2048);
 
         cJSON *arr = cJSON_CreateArray();
         for (int i = 0; i < n; i++)
             cJSON_AddItemToArray(arr, entry_to_json(&entries[i]));
 
+        free(entries);
         cJSON *root = cJSON_CreateObject();
         cJSON_AddItemToObject(root, "data", arr);
         cJSON_AddNumberToObject(root, "count", n);

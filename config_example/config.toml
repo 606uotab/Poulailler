@@ -167,6 +167,63 @@ field_price = "current_price"
 field_change = "price_change_percentage_24h"
 field_volume = "market_cap"
 
+# ─── CoinGecko (top 251-500 crypto par market cap) ───
+
+[[source.rest]]
+name = "CoinGecko Markets 2"
+base_url = "https://api.coingecko.com/api/v3"
+endpoint = "/coins/markets"
+method = "GET"
+category = "crypto"
+api_key_header = ""
+api_key = ""
+params = "vs_currency=usd&order=market_cap_desc&per_page=250&page=2&sparkline=false&price_change_percentage=24h"
+refresh_interval_sec = 90
+response_format = "json_array"
+field_symbol = "symbol"
+field_name = "name"
+field_price = "current_price"
+field_change = "price_change_percentage_24h"
+field_volume = "market_cap"
+
+# ─── CoinGecko (top 501-750 crypto par market cap) ───
+
+[[source.rest]]
+name = "CoinGecko Markets 3"
+base_url = "https://api.coingecko.com/api/v3"
+endpoint = "/coins/markets"
+method = "GET"
+category = "crypto"
+api_key_header = ""
+api_key = ""
+params = "vs_currency=usd&order=market_cap_desc&per_page=250&page=3&sparkline=false&price_change_percentage=24h"
+refresh_interval_sec = 120
+response_format = "json_array"
+field_symbol = "symbol"
+field_name = "name"
+field_price = "current_price"
+field_change = "price_change_percentage_24h"
+field_volume = "market_cap"
+
+# ─── CoinGecko (top 751-1000 crypto par market cap) ───
+
+[[source.rest]]
+name = "CoinGecko Markets 4"
+base_url = "https://api.coingecko.com/api/v3"
+endpoint = "/coins/markets"
+method = "GET"
+category = "crypto"
+api_key_header = ""
+api_key = ""
+params = "vs_currency=usd&order=market_cap_desc&per_page=250&page=4&sparkline=false&price_change_percentage=24h"
+refresh_interval_sec = 150
+response_format = "json_array"
+field_symbol = "symbol"
+field_name = "name"
+field_price = "current_price"
+field_change = "price_change_percentage_24h"
+field_volume = "market_cap"
+
 # ─── LNmarkets (Bitcoin Lightning futures) ───
 
 [[source.rest]]
