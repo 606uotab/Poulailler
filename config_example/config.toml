@@ -224,6 +224,214 @@ field_price = "current_price"
 field_change = "price_change_percentage_24h"
 field_volume = "market_cap"
 
+# ─── UniSat BRC-20 / Ordinals (top 100 by market cap) ───
+
+[[source.rest]]
+name = "UniSat BRC-20"
+base_url = "https://open-api.unisat.io"
+endpoint = "/v3/market/brc20/auction/brc20_types"
+method = "POST"
+category = "crypto"
+post_body = '{"timeType":"day1","start":0,"limit":100}'
+refresh_interval_sec = 90
+response_format = "json_array"
+data_path = "data.list"
+field_symbol = "tick"
+field_name = "tick"
+field_price = "curPrice"
+field_change = "changePercent"
+field_volume = "btcVolume"
+
+# ─── UniSat Runes (top 200 by market cap) ───
+
+[[source.rest]]
+name = "UniSat Runes"
+base_url = "https://open-api.unisat.io"
+endpoint = "/v3/market/runes/auction/runes_types"
+method = "POST"
+category = "crypto"
+post_body = '{"timeType":"day1","start":0,"limit":100}'
+refresh_interval_sec = 90
+response_format = "json_array"
+data_path = "data.list"
+field_symbol = "tick"
+field_name = "tick"
+field_price = "curPrice"
+field_change = "changePercent"
+field_volume = "btcVolume"
+
+[[source.rest]]
+name = "UniSat Runes p2"
+base_url = "https://open-api.unisat.io"
+endpoint = "/v3/market/runes/auction/runes_types"
+method = "POST"
+category = "crypto"
+post_body = '{"timeType":"day1","start":100,"limit":100}'
+refresh_interval_sec = 120
+response_format = "json_array"
+data_path = "data.list"
+field_symbol = "tick"
+field_name = "tick"
+field_price = "curPrice"
+field_change = "changePercent"
+field_volume = "btcVolume"
+
+# ─── Magic Eden Runes (top 100 by volume) ───
+
+[[source.rest]]
+name = "MagicEden Runes"
+base_url = "https://api-mainnet.magiceden.dev"
+endpoint = "/v2/ord/btc/runes/collection_stats/search"
+method = "GET"
+category = "crypto"
+params = "window=1d&sort=volume&direction=desc&limit=100"
+refresh_interval_sec = 120
+response_format = "json_array"
+data_path = "runes"
+field_symbol = "rune"
+field_name = "rune"
+field_price = "unitPriceSats"
+field_change = "unitPriceChange"
+field_volume = "vol"
+
+# ─── GeckoTerminal ERC-20 / Ethereum DEX (trending pools) ───
+
+[[source.rest]]
+name = "GeckoTerminal ETH"
+base_url = "https://api.geckoterminal.com/api/v2"
+endpoint = "/networks/eth/trending_pools"
+method = "GET"
+category = "crypto"
+params = "page=1"
+refresh_interval_sec = 90
+response_format = "json_array"
+data_path = "data"
+field_symbol = "attributes.name"
+field_name = "attributes.name"
+field_price = "attributes.base_token_price_usd"
+field_change = "attributes.price_change_percentage.h24"
+field_volume = "attributes.volume_usd.h24"
+
+[[source.rest]]
+name = "GeckoTerminal ETH p2"
+base_url = "https://api.geckoterminal.com/api/v2"
+endpoint = "/networks/eth/trending_pools"
+method = "GET"
+category = "crypto"
+params = "page=2"
+refresh_interval_sec = 120
+response_format = "json_array"
+data_path = "data"
+field_symbol = "attributes.name"
+field_name = "attributes.name"
+field_price = "attributes.base_token_price_usd"
+field_change = "attributes.price_change_percentage.h24"
+field_volume = "attributes.volume_usd.h24"
+
+# ─── GeckoTerminal Solana DEX (trending pools) ───
+
+[[source.rest]]
+name = "GeckoTerminal SOL"
+base_url = "https://api.geckoterminal.com/api/v2"
+endpoint = "/networks/solana/trending_pools"
+method = "GET"
+category = "crypto"
+params = "page=1"
+refresh_interval_sec = 90
+response_format = "json_array"
+data_path = "data"
+field_symbol = "attributes.name"
+field_name = "attributes.name"
+field_price = "attributes.base_token_price_usd"
+field_change = "attributes.price_change_percentage.h24"
+field_volume = "attributes.volume_usd.h24"
+
+[[source.rest]]
+name = "GeckoTerminal SOL p2"
+base_url = "https://api.geckoterminal.com/api/v2"
+endpoint = "/networks/solana/trending_pools"
+method = "GET"
+category = "crypto"
+params = "page=2"
+refresh_interval_sec = 120
+response_format = "json_array"
+data_path = "data"
+field_symbol = "attributes.name"
+field_name = "attributes.name"
+field_price = "attributes.base_token_price_usd"
+field_change = "attributes.price_change_percentage.h24"
+field_volume = "attributes.volume_usd.h24"
+
+# ─── DexPaprika Ethereum (top pools by volume) ───
+
+[[source.rest]]
+name = "DexPaprika ETH"
+base_url = "https://api.dexpaprika.com"
+endpoint = "/networks/ethereum/pools"
+method = "GET"
+category = "crypto"
+params = "limit=50&order_by=volume_usd&order=desc"
+refresh_interval_sec = 90
+response_format = "json_array"
+data_path = "pools"
+field_symbol = "tokens.0.symbol"
+field_name = "tokens.0.name"
+field_price = "price_usd"
+field_change = "last_price_change_usd_24h"
+field_volume = "volume_usd"
+
+# ─── DexPaprika Solana (top pools by volume) ───
+
+[[source.rest]]
+name = "DexPaprika SOL"
+base_url = "https://api.dexpaprika.com"
+endpoint = "/networks/solana/pools"
+method = "GET"
+category = "crypto"
+params = "limit=50&order_by=volume_usd&order=desc"
+refresh_interval_sec = 90
+response_format = "json_array"
+data_path = "pools"
+field_symbol = "tokens.0.symbol"
+field_name = "tokens.0.name"
+field_price = "price_usd"
+field_change = "last_price_change_usd_24h"
+field_volume = "volume_usd"
+
+# ─── CoinGecko Dogechain Ecosystem ───
+
+[[source.rest]]
+name = "CoinGecko Dogechain"
+base_url = "https://api.coingecko.com/api/v3"
+endpoint = "/coins/markets"
+method = "GET"
+category = "crypto"
+params = "vs_currency=usd&category=dogechain-ecosystem&per_page=50&page=1&sparkline=false&price_change_percentage=24h"
+refresh_interval_sec = 120
+response_format = "json_array"
+field_symbol = "symbol"
+field_name = "name"
+field_price = "current_price"
+field_change = "price_change_percentage_24h"
+field_volume = "total_volume"
+
+# ─── CoinGecko DRC-20 (Dogecoin tokens) ───
+
+[[source.rest]]
+name = "CoinGecko DRC-20"
+base_url = "https://api.coingecko.com/api/v3"
+endpoint = "/coins/markets"
+method = "GET"
+category = "crypto"
+params = "vs_currency=usd&category=drc-20&per_page=50&page=1&sparkline=false&price_change_percentage=24h"
+refresh_interval_sec = 120
+response_format = "json_array"
+field_symbol = "symbol"
+field_name = "name"
+field_price = "current_price"
+field_change = "price_change_percentage_24h"
+field_volume = "total_volume"
+
 # ─── LNmarkets (Bitcoin Lightning futures) ───
 
 [[source.rest]]

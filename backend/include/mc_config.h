@@ -39,6 +39,7 @@ typedef struct {
     char          field_name[64];       /* e.g. "name" for display */
     char          field_prev_close[64]; /* e.g. "chartPreviousClose" - auto-compute change */
     char          data_path[64];        /* e.g. "data.items" - path to array */
+    char          post_body[MC_MAX_PARAMS]; /* JSON body for POST requests */
 } mc_rest_source_cfg_t;
 
 typedef struct {

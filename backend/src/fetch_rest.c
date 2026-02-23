@@ -277,11 +277,19 @@ static cJSON *json_navigate(cJSON *root, const char *path)
     return current;
 }
 
+/* Resolve a JSON value by key; supports dot-separated nested paths */
+static cJSON *json_resolve(cJSON *obj, const char *key)
+{
+    if (!key || !key[0]) return NULL;
+    if (strchr(key, '.'))
+        return json_navigate(obj, key);
+    return cJSON_GetObjectItemCaseSensitive(obj, key);
+}
+
 /* Extract a double from a JSON value (handles number, string, and array[0]) */
 static double json_get_double(cJSON *obj, const char *key)
 {
-    if (!key || !key[0]) return NAN;
-    cJSON *v = cJSON_GetObjectItemCaseSensitive(obj, key);
+    cJSON *v = json_resolve(obj, key);
     if (!v) return NAN;
     if (cJSON_IsNumber(v)) return v->valuedouble;
     if (cJSON_IsString(v) && v->valuestring) return atof(v->valuestring);
@@ -296,8 +304,7 @@ static double json_get_double(cJSON *obj, const char *key)
 
 static const char *json_get_string(cJSON *obj, const char *key)
 {
-    if (!key || !key[0]) return NULL;
-    cJSON *v = cJSON_GetObjectItemCaseSensitive(obj, key);
+    cJSON *v = json_resolve(obj, key);
     if (v && cJSON_IsString(v)) return v->valuestring;
     return NULL;
 }
@@ -498,14 +505,20 @@ int mc_fetch_rest(const mc_rest_source_cfg_t *cfg,
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buf);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, 15L);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, "MonitorCrebirth/0.1");
-    if (headers)
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
     /* Apply HTTP method from config */
     if (strcasecmp(cfg->method, "POST") == 0) {
         curl_easy_setopt(curl, CURLOPT_POST, 1L);
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "");
+        if (cfg->post_body[0]) {
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, cfg->post_body);
+            headers = curl_slist_append(headers, "Content-Type: application/json");
+        } else {
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "");
+        }
     }
+
+    if (headers)
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
     CURLcode res = curl_easy_perform(curl);
     curl_easy_cleanup(curl);
