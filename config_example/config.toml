@@ -750,7 +750,108 @@ field_symbol = "symbol"
 field_price = "regularMarketPrice"
 field_prev_close = "chartPreviousClose"
 
-# ─── Forex (Frankfurter / ECB rates, no key) ───
+# ═══════════════════════════════════════════
+#  Forex Sources
+# ═══════════════════════════════════════════
+
+# ─── ExchangeRate-API (166 currencies per base, daily, no auth) ───
+
+[[source.rest]]
+name = "FX USD"
+base_url = "https://open.er-api.com/v6"
+endpoint = "/latest/USD"
+method = "GET"
+category = "forex"
+refresh_interval_sec = 600
+response_format = "json_object"
+data_path = "rates"
+field_price = ""
+
+[[source.rest]]
+name = "FX EUR"
+base_url = "https://open.er-api.com/v6"
+endpoint = "/latest/EUR"
+method = "GET"
+category = "forex"
+refresh_interval_sec = 600
+response_format = "json_object"
+data_path = "rates"
+field_price = ""
+
+[[source.rest]]
+name = "FX GBP"
+base_url = "https://open.er-api.com/v6"
+endpoint = "/latest/GBP"
+method = "GET"
+category = "forex"
+refresh_interval_sec = 600
+response_format = "json_object"
+data_path = "rates"
+field_price = ""
+
+# ─── FloatRates (145 currencies, intraday updates, names included) ───
+
+[[source.rest]]
+name = "FloatRates USD"
+base_url = "https://www.floatrates.com"
+endpoint = "/daily/usd.json"
+method = "GET"
+category = "forex"
+refresh_interval_sec = 300
+response_format = "json_object"
+field_symbol = "alphaCode"
+field_name = "name"
+field_price = "rate"
+
+[[source.rest]]
+name = "FloatRates EUR"
+base_url = "https://www.floatrates.com"
+endpoint = "/daily/eur.json"
+method = "GET"
+category = "forex"
+refresh_interval_sec = 300
+response_format = "json_object"
+field_symbol = "alphaCode"
+field_name = "name"
+field_price = "rate"
+
+[[source.rest]]
+name = "FloatRates GBP"
+base_url = "https://www.floatrates.com"
+endpoint = "/daily/gbp.json"
+method = "GET"
+category = "forex"
+refresh_interval_sec = 300
+response_format = "json_object"
+field_symbol = "alphaCode"
+field_name = "name"
+field_price = "rate"
+
+[[source.rest]]
+name = "FloatRates JPY"
+base_url = "https://www.floatrates.com"
+endpoint = "/daily/jpy.json"
+method = "GET"
+category = "forex"
+refresh_interval_sec = 300
+response_format = "json_object"
+field_symbol = "alphaCode"
+field_name = "name"
+field_price = "rate"
+
+[[source.rest]]
+name = "FloatRates CHF"
+base_url = "https://www.floatrates.com"
+endpoint = "/daily/chf.json"
+method = "GET"
+category = "forex"
+refresh_interval_sec = 300
+response_format = "json_object"
+field_symbol = "alphaCode"
+field_name = "name"
+field_price = "rate"
+
+# ─── Frankfurter / ECB (30 currencies, official reference rates) ───
 
 [[source.rest]]
 name = "Frankfurter USD"
@@ -758,10 +859,8 @@ base_url = "https://api.frankfurter.dev/v1"
 endpoint = "/latest"
 method = "GET"
 category = "forex"
-api_key_header = ""
-api_key = ""
-params = "base=USD&symbols=EUR,GBP,JPY,CHF,CAD,AUD,CNY,SEK,NZD,NOK,DKK,SGD,HKD,KRW,MXN,ZAR,BRL,INR,TRY,PLN"
-refresh_interval_sec = 300
+params = "base=USD"
+refresh_interval_sec = 600
 response_format = "json_object"
 data_path = "rates"
 field_price = ""
@@ -772,13 +871,43 @@ base_url = "https://api.frankfurter.dev/v1"
 endpoint = "/latest"
 method = "GET"
 category = "forex"
-api_key_header = ""
-api_key = ""
-params = "base=EUR&symbols=USD,GBP,JPY,CHF,CAD,AUD,CNY,SEK,NZD,NOK"
-refresh_interval_sec = 300
+params = "base=EUR"
+refresh_interval_sec = 600
 response_format = "json_object"
 data_path = "rates"
 field_price = ""
+
+# ─── NBP Poland Table C (13 major currencies, bid/ask spreads) ───
+
+[[source.rest]]
+name = "NBP Bid/Ask"
+base_url = "https://api.nbp.pl/api"
+endpoint = "/exchangerates/tables/C/"
+method = "GET"
+category = "forex"
+params = "format=json"
+refresh_interval_sec = 600
+response_format = "json_array"
+data_path = "0.rates"
+field_symbol = "code"
+field_name = "currency"
+field_price = "ask"
+
+# ─── CBR Russia (54 currencies vs RUB, with previous day) ───
+
+[[source.rest]]
+name = "CBR RUB"
+base_url = "https://www.cbr-xml-daily.ru"
+endpoint = "/daily_json.js"
+method = "GET"
+category = "forex"
+refresh_interval_sec = 600
+response_format = "json_object"
+data_path = "Valute"
+field_symbol = "CharCode"
+field_name = "Name"
+field_price = "Value"
+field_prev_close = "Previous"
 
 # ─── Precious Metals (gold-api.com, public, no key) ───
 
