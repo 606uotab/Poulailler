@@ -138,11 +138,11 @@ static const struct { const char *sym; const char *name; } g_commodity_names[] =
     {"XRH0.L",  "Rhodium"},
     /* Energy */
     {"CL=F",    "Crude Oil WTI"},
-    {"BZ=F",    "Brent Crude"},
+    {"BZ=F",    "Brent Crude Oil"},
     {"NG=F",    "Natural Gas"},
-    {"TTF=F",   "EU Nat. Gas"},
+    {"TTF=F",   "Natural Gas Europe"},
     {"HO=F",    "Heating Oil"},
-    {"RB=F",    "Gasoline RBOB"},
+    {"RB=F",    "Gasoline"},
     {"CU=F",    "Ethanol"},
     /* Grains */
     {"ZW=F",    "Wheat"},
@@ -151,28 +151,28 @@ static const struct { const char *sym; const char *name; } g_commodity_names[] =
     {"ZO=F",    "Oats"},
     {"ZL=F",    "Soybean Oil"},
     {"ZM=F",    "Soybean Meal"},
-    {"KE=F",    "KC HRW Wheat"},
+    {"KE=F",    "Hard Red Wheat"},
     {"ZR=F",    "Rough Rice"},
     /* Softs */
     {"KC=F",    "Coffee"},
     {"CC=F",    "Cocoa"},
-    {"SB=F",    "Sugar #11"},
+    {"SB=F",    "Sugar"},
     {"CT=F",    "Cotton"},
     {"OJ=F",    "Orange Juice"},
     /* Livestock & Dairy */
     {"LE=F",    "Live Cattle"},
     {"GF=F",    "Feeder Cattle"},
     {"HE=F",    "Lean Hogs"},
-    {"DC=F",    "Milk Class III"},
+    {"DC=F",    "Milk"},
     {"CB=F",    "Butter"},
-    {"GDK=F",   "Milk Class IV"},
+    {"GDK=F",   "Milk (Class IV)"},
     {"CSC=F",   "Cheese"},
     {"DY=F",    "Dry Whey"},
     /* Industrial Metals */
     {"HG=F",    "Copper"},
     {"ALI=F",   "Aluminum"},
-    {"HRC=F",   "HRC Steel US"},
-    {"EHR=F",   "HRC Steel EU"},
+    {"HRC=F",   "Steel (US)"},
+    {"EHR=F",   "Steel (Europe)"},
     /* LME Metals (London ETCs) */
     {"NICK.L",  "Nickel"},
     {"ZINC.L",  "Zinc"},
@@ -180,8 +180,8 @@ static const struct { const char *sym; const char *name; } g_commodity_names[] =
     {"LEED.L",  "Lead"},
     /* Lumber & Carbon */
     {"LBR=F",   "Lumber"},
-    {"GNF=F",   "Carbon EUA"},
-    {"CO2.L",   "Carbon ETC"},
+    {"GNF=F",   "Carbon Emission EU"},
+    {"CO2.L",   "Carbon Emission UK"},
     {NULL, NULL}
 };
 

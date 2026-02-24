@@ -89,13 +89,19 @@ int panel_draw_entries(WINDOW *win, mc_data_entry_t *entries, int count,
     const char *vol_label = "Volume";
     const char *price_label = "Price";
     int is_forex = (cat_filter == MC_CAT_FOREX);
+    int is_commodity = (cat_filter == MC_CAT_COMMODITY);
     if (cat_filter == MC_CAT_CRYPTO) vol_label = "MCap";
     else if (cat_filter == MC_CAT_CRYPTO_EXCHANGE) vol_label = "Vol/BTC";
     else if (is_forex) { vol_label = "Base"; price_label = "Rate"; }
 
     wattron(win, COLOR_PAIR(CP_HEADER) | A_BOLD);
-    mvwprintw(win, 0, 1, " %-14s %12s %8s %8s  %-12s  %s",
-              "Symbol", price_label, "Chg%", vol_label, "Source", "Updated");
+    if (is_commodity) {
+        mvwprintw(win, 0, 1, " %-8s %-20s %12s %8s  %s",
+                  "Ticker", "Name", price_label, "Chg%", "Updated");
+    } else {
+        mvwprintw(win, 0, 1, " %-14s %12s %8s %8s  %-12s  %s",
+                  "Symbol", price_label, "Chg%", vol_label, "Source", "Updated");
+    }
     wattroff(win, COLOR_PAIR(CP_HEADER) | A_BOLD);
 
     wattron(win, COLOR_PAIR(CP_DIM));
@@ -162,7 +168,13 @@ int panel_draw_entries(WINDOW *win, mc_data_entry_t *entries, int count,
         const char *label = (e->display_name[0]) ? e->display_name : e->symbol;
 
         wattron(win, COLOR_PAIR(cp));
-        if (is_forex) {
+        if (is_commodity) {
+            /* Commodity: ticker + name columns, no volume/source */
+            const char *name = e->display_name[0] ? e->display_name : "---";
+            mvwprintw(win, row, 1, " %-8s %-20s $%11.2f %s%6.2f%% %s  %s",
+                      e->symbol, name, e->value, arrow, e->change_pct,
+                      indicator, time_str);
+        } else if (is_forex) {
             /* Forex: no $ prefix, show base currency instead of volume */
             mvwprintw(win, row, 1, " %-14s %12.6f %s%6.2f%% %s %8s  %-12s  %s",
                       label, e->value, arrow, e->change_pct,
@@ -369,9 +381,14 @@ void panel_draw_detail_entry(WINDOW *win, const mc_data_entry_t *entry)
 
     char buf[128];
 
-    detail_label(win, row++, lx, "Symbol:", entry->symbol);
-    if (entry->display_name[0])
+    if (entry->category == MC_CAT_COMMODITY && entry->display_name[0]) {
         detail_label(win, row++, lx, "Name:", entry->display_name);
+        detail_label(win, row++, lx, "Ticker:", entry->symbol);
+    } else {
+        detail_label(win, row++, lx, "Symbol:", entry->symbol);
+        if (entry->display_name[0])
+            detail_label(win, row++, lx, "Name:", entry->display_name);
+    }
 
     if (entry->category == MC_CAT_FOREX) {
         snprintf(buf, sizeof(buf), "%.6f", entry->value);
