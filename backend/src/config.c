@@ -152,6 +152,8 @@ static void parse_rest_sources(toml_table_t *source_tbl, mc_config_t *cfg)
         if (d.ok) { safe_copy(s->data_path, d.u.s, 64); free(d.u.s); }
         d = toml_string_in(t, "post_body");
         if (d.ok) { safe_copy(s->post_body, d.u.s, MC_MAX_PARAMS); free(d.u.s); }
+        d = toml_string_in(t, "currency");
+        if (d.ok) { safe_copy(s->currency, d.u.s, MC_MAX_SYMBOL); free(d.u.s); }
 
         cfg->rest_count++;
     }

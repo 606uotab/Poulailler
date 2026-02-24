@@ -128,6 +128,72 @@ static const char *lookup_index_name(const char *symbol)
     return NULL;
 }
 
+/* ── Human-readable names for commodity futures symbols ── */
+static const struct { const char *sym; const char *name; } g_commodity_names[] = {
+    /* Precious Metals */
+    {"GC=F",    "Gold"},
+    {"SI=F",    "Silver"},
+    {"PL=F",    "Platinum"},
+    {"PA=F",    "Palladium"},
+    {"XRH0.L",  "Rhodium"},
+    /* Energy */
+    {"CL=F",    "Crude Oil WTI"},
+    {"BZ=F",    "Brent Crude"},
+    {"NG=F",    "Natural Gas"},
+    {"TTF=F",   "EU Nat. Gas"},
+    {"HO=F",    "Heating Oil"},
+    {"RB=F",    "Gasoline RBOB"},
+    {"CU=F",    "Ethanol"},
+    /* Grains */
+    {"ZW=F",    "Wheat"},
+    {"ZC=F",    "Corn"},
+    {"ZS=F",    "Soybeans"},
+    {"ZO=F",    "Oats"},
+    {"ZL=F",    "Soybean Oil"},
+    {"ZM=F",    "Soybean Meal"},
+    {"KE=F",    "KC HRW Wheat"},
+    {"ZR=F",    "Rough Rice"},
+    /* Softs */
+    {"KC=F",    "Coffee"},
+    {"CC=F",    "Cocoa"},
+    {"SB=F",    "Sugar #11"},
+    {"CT=F",    "Cotton"},
+    {"OJ=F",    "Orange Juice"},
+    /* Livestock & Dairy */
+    {"LE=F",    "Live Cattle"},
+    {"GF=F",    "Feeder Cattle"},
+    {"HE=F",    "Lean Hogs"},
+    {"DC=F",    "Milk Class III"},
+    {"CB=F",    "Butter"},
+    {"GDK=F",   "Milk Class IV"},
+    {"CSC=F",   "Cheese"},
+    {"DY=F",    "Dry Whey"},
+    /* Industrial Metals */
+    {"HG=F",    "Copper"},
+    {"ALI=F",   "Aluminum"},
+    {"HRC=F",   "HRC Steel US"},
+    {"EHR=F",   "HRC Steel EU"},
+    /* LME Metals (London ETCs) */
+    {"NICK.L",  "Nickel"},
+    {"ZINC.L",  "Zinc"},
+    {"TIN.L",   "Tin"},
+    {"LEED.L",  "Lead"},
+    /* Lumber & Carbon */
+    {"LBR=F",   "Lumber"},
+    {"GNF=F",   "Carbon EUA"},
+    {"CO2.L",   "Carbon ETC"},
+    {NULL, NULL}
+};
+
+static const char *lookup_commodity_name(const char *symbol)
+{
+    for (int i = 0; g_commodity_names[i].sym; i++) {
+        if (strcmp(g_commodity_names[i].sym, symbol) == 0)
+            return g_commodity_names[i].name;
+    }
+    return NULL;
+}
+
 typedef struct {
     char  *data;
     size_t size;
@@ -364,7 +430,7 @@ static int parse_generic_response(const char *json,
             e->volume = json_get_double(item,
                 cfg->field_volume[0] ? cfg->field_volume : "volume");
 
-            strncpy(e->currency, "USD", MC_MAX_SYMBOL - 1);
+            strncpy(e->currency, cfg->currency[0] ? cfg->currency : "USD", MC_MAX_SYMBOL - 1);
             e->timestamp = time(NULL);
             e->fetched_at = time(NULL);
 
@@ -414,7 +480,7 @@ static int parse_generic_response(const char *json,
             e->volume = json_get_double(data,
                 cfg->field_volume[0] ? cfg->field_volume : "volume");
 
-            strncpy(e->currency, "USD", MC_MAX_SYMBOL - 1);
+            strncpy(e->currency, cfg->currency[0] ? cfg->currency : "USD", MC_MAX_SYMBOL - 1);
             e->timestamp = time(NULL);
             e->fetched_at = time(NULL);
 
@@ -461,7 +527,7 @@ static int parse_generic_response(const char *json,
                     e->value = item->valuedouble;
                 }
 
-                strncpy(e->currency, "USD", MC_MAX_SYMBOL - 1);
+                strncpy(e->currency, cfg->currency[0] ? cfg->currency : "USD", MC_MAX_SYMBOL - 1);
                 e->timestamp = time(NULL);
                 e->fetched_at = time(NULL);
 
@@ -549,11 +615,19 @@ int mc_fetch_rest(const mc_rest_source_cfg_t *cfg,
 
     free(buf.data);
 
-    /* Post-process: fill display_name from lookup table for known indices */
+    /* Post-process: fill display_name from lookup table for known symbols */
     if (cfg->category == MC_CAT_STOCK_INDEX) {
         for (int i = 0; i < count; i++) {
             if (!entries_out[i].display_name[0]) {
                 const char *name = lookup_index_name(entries_out[i].symbol);
+                if (name)
+                    strncpy(entries_out[i].display_name, name, MC_MAX_NAME - 1);
+            }
+        }
+    } else if (cfg->category == MC_CAT_COMMODITY) {
+        for (int i = 0; i < count; i++) {
+            if (!entries_out[i].display_name[0]) {
+                const char *name = lookup_commodity_name(entries_out[i].symbol);
                 if (name)
                     strncpy(entries_out[i].display_name, name, MC_MAX_NAME - 1);
             }
