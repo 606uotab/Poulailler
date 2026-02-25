@@ -8,6 +8,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <unistd.h>
 
 #define CP_UP      1
 #define CP_DOWN    2
@@ -115,6 +116,65 @@ static void draw_tabs(WINDOW *win, int active_tab)
     wnoutrefresh(win);
 }
 
+/* Build a web URL for a data entry and open it in the browser */
+static void open_entry_url(const mc_data_entry_t *e)
+{
+    char url[512];
+
+    switch (e->category) {
+    case MC_CAT_CRYPTO:
+    case MC_CAT_CRYPTO_EXCHANGE:
+        /* CoinGecko search by symbol */
+        snprintf(url, sizeof(url),
+                 "https://www.coingecko.com/en/coins/%s",
+                 e->display_name[0] ? e->display_name : e->symbol);
+        /* lowercase the coin name part */
+        for (char *p = url + 35; *p; p++) {
+            if (*p == ' ') *p = '-';
+            else *p = tolower((unsigned char)*p);
+        }
+        break;
+    case MC_CAT_STOCK_INDEX:
+    case MC_CAT_COMMODITY:
+        /* Yahoo Finance */
+        snprintf(url, sizeof(url),
+                 "https://finance.yahoo.com/quote/%s", e->symbol);
+        break;
+    case MC_CAT_FOREX:
+        /* Google Finance for forex pairs */
+        snprintf(url, sizeof(url),
+                 "https://www.google.com/finance/quote/%s-%s",
+                 e->symbol, e->currency[0] ? e->currency : "USD");
+        break;
+    default:
+        /* Generic Google search */
+        snprintf(url, sizeof(url),
+                 "https://www.google.com/search?q=%s", e->symbol);
+        break;
+    }
+
+    /* Temporarily leave ncurses, open URL, return */
+    def_prog_mode();
+    endwin();
+    char cmd[600];
+    snprintf(cmd, sizeof(cmd), "xdg-open '%s' >/dev/null 2>&1 &", url);
+    system(cmd);
+    reset_prog_mode();
+    refresh();
+}
+
+static void open_news_url(const mc_news_item_t *n)
+{
+    if (!n->url[0]) return;
+    def_prog_mode();
+    endwin();
+    char cmd[600];
+    snprintf(cmd, sizeof(cmd), "xdg-open '%s' >/dev/null 2>&1 &", n->url);
+    system(cmd);
+    reset_prog_mode();
+    refresh();
+}
+
 static void draw_status(WINDOW *win, ui_mode_t mode,
                          const char *search_query,
                          int cursor_pos, int filtered_total,
@@ -129,6 +189,9 @@ static void draw_status(WINDOW *win, ui_mode_t mode,
         panel_draw_search_bar(win, search_query, 1);
     } else if (search_query[0]) {
         panel_draw_search_bar(win, search_query, 0);
+    } else if (mode == MODE_DETAIL) {
+        mvwprintw(win, 1, 1,
+                  "Enter/o:open in browser  q/Esc:close");
     } else {
         int page = filtered_total > 0 ? (cursor_pos / PAGE_SIZE) + 1 : 0;
         int pages = filtered_total > 0 ? ((filtered_total - 1) / PAGE_SIZE) + 1 : 0;
@@ -359,6 +422,21 @@ int tui_run(mc_client_t *client, tui_theme_t theme)
             case 'q':
                 mode = MODE_NORMAL;
                 break;
+            case 'o':
+            case '\n':
+            case '\r':
+                /* Open in browser */
+                if (active_tab == news_tab) {
+                    mc_news_item_t *sel = get_filtered_news(news, news_count,
+                                                             search_query, cursor_pos);
+                    if (sel) open_news_url(sel);
+                } else {
+                    mc_data_entry_t *sel = get_filtered_entry(entries, entry_count,
+                                                               tab_categories[active_tab],
+                                                               search_query, cursor_pos);
+                    if (sel) open_entry_url(sel);
+                }
+                break;
             }
         } else {
             /* Normal mode */
@@ -461,7 +539,6 @@ int tui_run(mc_client_t *client, tui_theme_t theme)
 
             case '\n':
             case '\r':
-            case 'o':
                 if (filtered_total > 0)
                     mode = MODE_DETAIL;
                 break;
