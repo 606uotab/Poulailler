@@ -224,7 +224,8 @@ int mc_db_get_latest_entries(mc_db_t *db, mc_category_t cat,
                              mc_data_entry_t *out, int max_count)
 {
     /* Deduplicate: latest entry per (symbol, source_name) */
-    const char *order = (cat == MC_CAT_STOCK_INDEX || cat == MC_CAT_FOREX)
+    const char *order = (cat == MC_CAT_STOCK_INDEX || cat == MC_CAT_FOREX
+                         || cat == MC_CAT_COMMODITY)
         ? "ORDER BY d.source_name, d.symbol"
         : "ORDER BY d.volume DESC, d.symbol";
 

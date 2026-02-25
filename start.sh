@@ -3,7 +3,7 @@
 # Usage: ./start.sh [daemon|tui|both|stop|status]
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
-DAEMON="$DIR/backend/build/mc-daemon"
+DAEMON="$DIR/build/backend/mc-daemon"
 TUI="$DIR/build/clients/tui/mc-tui"
 CONFIG="$HOME/.monitorcrebirth/config.toml"
 PIDFILE="$HOME/.monitorcrebirth/mc-daemon.pid"

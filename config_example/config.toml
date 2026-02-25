@@ -1019,7 +1019,46 @@ base_url = "https://query1.finance.yahoo.com/v8/finance"
 endpoint = "/spark"
 method = "GET"
 category = "commodity"
-params = "symbols=LBR=F,GNF=F,CO2.L&range=1d&interval=1d"
+params = "symbols=LBR=F,GNF=F,CO2.L,KRBN,CARB.L&range=1d&interval=1d"
+refresh_interval_sec = 300
+response_format = "json_object"
+field_symbol = "symbol"
+field_price = "close"
+field_prev_close = "chartPreviousClose"
+
+[[source.rest]]
+name = "Uranium"
+base_url = "https://query1.finance.yahoo.com/v8/finance"
+endpoint = "/spark"
+method = "GET"
+category = "commodity"
+params = "symbols=SRUUF,URNU.L,YCA.L&range=1d&interval=1d"
+refresh_interval_sec = 300
+response_format = "json_object"
+field_symbol = "symbol"
+field_price = "close"
+field_prev_close = "chartPreviousClose"
+
+[[source.rest]]
+name = "Rare & Strategic"
+base_url = "https://query1.finance.yahoo.com/v8/finance"
+endpoint = "/spark"
+method = "GET"
+category = "commodity"
+params = "symbols=REMX,BATT.L,PALM.L,BDRY&range=1d&interval=1d"
+refresh_interval_sec = 300
+response_format = "json_object"
+field_symbol = "symbol"
+field_price = "close"
+field_prev_close = "chartPreviousClose"
+
+[[source.rest]]
+name = "Water"
+base_url = "https://query1.finance.yahoo.com/v8/finance"
+endpoint = "/spark"
+method = "GET"
+category = "commodity"
+params = "symbols=PHO,CGW&range=1d&interval=1d"
 refresh_interval_sec = 300
 response_format = "json_object"
 field_symbol = "symbol"

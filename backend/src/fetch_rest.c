@@ -182,6 +182,20 @@ static const struct { const char *sym; const char *name; } g_commodity_names[] =
     {"LBR=F",   "Lumber"},
     {"GNF=F",   "Carbon Emission EU"},
     {"CO2.L",   "Carbon Emission UK"},
+    {"KRBN",    "Carbon Credits US"},
+    {"CARB.L",  "Carbon Credits UK"},
+    /* Uranium */
+    {"SRUUF",   "Uranium (Sprott)"},
+    {"URNU.L",  "Uranium ETC"},
+    {"YCA.L",   "Yellow Cake Uranium"},
+    /* Rare & Strategic */
+    {"REMX",    "Rare Earth"},
+    {"BATT.L",  "Battery Metals"},
+    {"PALM.L",  "Palm Oil"},
+    {"BDRY",    "Baltic Dry Index"},
+    /* Water */
+    {"PHO",     "Water Resources"},
+    {"CGW",     "Water Global"},
     {NULL, NULL}
 };
 
