@@ -117,7 +117,8 @@ static void draw_tabs(WINDOW *win, int active_tab)
 
 static void draw_status(WINDOW *win, ui_mode_t mode,
                          const char *search_query,
-                         int cursor_pos, int filtered_total)
+                         int cursor_pos, int filtered_total,
+                         mc_category_t active_cat)
 {
     int w = getmaxx(win);
     werase(win);
@@ -131,9 +132,15 @@ static void draw_status(WINDOW *win, ui_mode_t mode,
     } else {
         int page = filtered_total > 0 ? (cursor_pos / PAGE_SIZE) + 1 : 0;
         int pages = filtered_total > 0 ? ((filtered_total - 1) / PAGE_SIZE) + 1 : 0;
-        mvwprintw(win, 1, 1,
-                  "1-7:tab  j/k:scroll  n/p:page  /:search  Enter:detail  L:theme  r:refresh  q:quit  |  pg %d/%d  %d items",
-                  page, pages, filtered_total);
+        if (active_cat == MC_CAT_COMMODITY) {
+            mvwprintw(win, 1, 1,
+                      "=F:Futures  .L:London  |  1-7:tab  j/k:scroll  /:search  Enter:detail  q:quit  |  pg %d/%d  %d items",
+                      page, pages, filtered_total);
+        } else {
+            mvwprintw(win, 1, 1,
+                      "1-7:tab  j/k:scroll  n/p:page  /:search  Enter:detail  L:theme  r:refresh  q:quit  |  pg %d/%d  %d items",
+                      page, pages, filtered_total);
+        }
     }
     wattroff(win, COLOR_PAIR(CP_HEADER));
     wnoutrefresh(win);
@@ -303,7 +310,8 @@ int tui_run(mc_client_t *client, tui_theme_t theme)
             }
         }
 
-        draw_status(status_win, mode, search_query, cursor_pos, filtered_total);
+        draw_status(status_win, mode, search_query, cursor_pos, filtered_total,
+                    tab_categories[active_tab]);
 
         /* Flush all window updates in a single
            screen write to avoid flicker */
