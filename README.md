@@ -106,14 +106,18 @@ curl "http://localhost:8420/api/v1/entries?symbol=BTC"
 {
   "data": [
     {
+      "id": 12345,
+      "source": "CoinGecko Markets",
+      "source_type": "rest",
+      "category": "crypto",
       "symbol": "BTC",
       "display_name": "Bitcoin",
-      "price": 92150.00,
+      "value": 92150.00,
+      "currency": "USD",
       "change_pct": 2.35,
       "volume": 28500000000,
-      "source_name": "CoinGecko Markets",
-      "category": "crypto",
-      "fetched_at": "2026-02-26T12:00:00Z"
+      "timestamp": 1772127883,
+      "fetched_at": 1772127883
     }
   ],
   "count": 1
@@ -136,12 +140,13 @@ curl "http://localhost:8420/api/v1/news"
 {
   "data": [
     {
+      "id": 5678,
       "title": "Bitcoin Surges Past $90K",
       "source": "CoinTelegraph",
       "url": "https://...",
       "summary": "...",
       "category": "news",
-      "published_at": "2026-02-26T10:30:00Z"
+      "published_at": 1772127000
     }
   ],
   "count": 235
@@ -187,8 +192,8 @@ curl http://localhost:8420/api/v1/entries/BTC/history
 {
   "symbol": "BTC",
   "data": [
-    {"price": 92150.00, "change_pct": 2.35, "volume": 28500000000, "fetched_at": "2026-02-26T12:00:00Z"},
-    {"price": 90100.00, "change_pct": -0.5, "volume": 25000000000, "fetched_at": "2026-02-26T11:55:00Z"}
+    {"value": 92150.00, "change_pct": 2.35, "volume": 28500000000, "timestamp": 1772127883},
+    {"value": 90100.00, "change_pct": -0.5, "volume": 25000000000, "timestamp": 1772127583}
   ],
   "count": 288
 }
@@ -320,12 +325,12 @@ API = "http://localhost:8420/api/v1"
 
 # Get Bitcoin price
 btc = requests.get(f"{API}/entries", params={"symbol": "BTC"}).json()
-print(f"BTC: ${btc['data'][0]['price']:,.2f}")
+print(f"BTC: ${btc['data'][0]['value']:,.2f}")
 
 # Get all commodities
 commodities = requests.get(f"{API}/entries", params={"category": "commodity"}).json()
 for c in commodities["data"]:
-    print(f"{c['symbol']:10s} {c['display_name']:20s} ${c['price']:>12,.2f} {c['change_pct']:+.2f}%")
+    print(f"{c['symbol']:10s} {c['display_name']:20s} ${c['value']:>12,.2f} {c['change_pct']:+.2f}%")
 
 # Get latest news
 news = requests.get(f"{API}/news").json()
