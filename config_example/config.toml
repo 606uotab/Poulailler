@@ -67,9 +67,21 @@ refresh_interval_sec = 120
 # ─── Commodités / Forex ───
 
 [[source.rss]]
-name = "Investing.com Comm."
-url = "https://www.investing.com/rss/commodities.rss"
-category = "commodity"
+name = "Cryptoast"
+url = "https://cryptoast.fr/feed/"
+category = "news"
+refresh_interval_sec = 180
+
+[[source.rss]]
+name = "Journal du Coin"
+url = "https://journalducoin.com/feed/"
+category = "news"
+refresh_interval_sec = 180
+
+[[source.rss]]
+name = "BFM Business"
+url = "https://www.bfmtv.com/rss/economie/"
+category = "news"
 refresh_interval_sec = 180
 
 [[source.rss]]
