@@ -72,10 +72,18 @@ case "${1:-both}" in
     daemon)
         kill_daemons
         build_if_needed
-        echo "Starting mc-daemon (foreground)..."
-        echo "  HTTP API: http://localhost:8420"
-        echo "  Press Ctrl+C to stop"
-        exec "$DAEMON" --config "$CONFIG"
+        "$DAEMON" --config "$CONFIG" > "$LOGFILE" 2>&1 &
+        echo $! > "$PIDFILE"
+        sleep 2
+        if kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+            echo "Daemon started (PID $(cat "$PIDFILE"))"
+            echo "  HTTP API: http://localhost:8420"
+            echo "  Logs:     $LOGFILE"
+            echo "  Stop:     ./start.sh stop"
+        else
+            echo "ERROR: Daemon failed to start. Check $LOGFILE"
+            exit 1
+        fi
         ;;
     tui)
         build_if_needed
