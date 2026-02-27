@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MonitorCrebirth</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0e17;
+  --bg-card: #111827;
+  --bg-header: #1a2332;
+  --border: #2d3748;
+  --text: #c8d6e5;
+  --text-dim: #6b7a8d;
+  --text-bright: #e2e8f0;
+  --green: #00d26a;
+  --red: #ff4757;
+  --blue: #3b82f6;
+  --yellow: #f59e0b;
+  --cyan: #06b6d4;
+  --purple: #a78bfa;
+  --accent: #3b82f6;
+  --row-hover: #1e293b;
+}
+
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ─────────────────────────────────── */
+#header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+#header .logo {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-bright);
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+#header .status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  flex-shrink: 0;
+}
+#header .status-dot.online { background: var(--green); }
+#header .status-label {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+#header .stats {
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  color: var(--text-dim);
+}
+#header .stats span b { color: var(--text); font-weight: 600; }
+#search-box {
+  margin-left: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 5px 10px;
+  color: var(--text);
+  font-size: 13px;
+  width: 220px;
+  outline: none;
+}
+#search-box:focus { border-color: var(--accent); }
+#search-box::placeholder { color: var(--text-dim); }
+
+/* ── Tabs ───────────────────────────────────── */
+#tab-bar {
+  display: flex;
+  gap: 0;
+  padding: 0 20px;
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.tab-btn {
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+#refresh-btn {
+  margin-left: auto;
+  align-self: center;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-dim);
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+#refresh-btn:hover { color: var(--text); border-color: var(--text-dim); }
+
+/* ── Main Content ───────────────────────────── */
+#content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+#content::-webkit-scrollbar { width: 6px; }
+#content::-webkit-scrollbar-track { background: var(--bg); }
+#content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── Data Table ─────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-header);
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+thead th:hover { color: var(--text); }
+thead th.num { text-align: right; }
+tbody td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #151c28;
+  white-space: nowrap;
+}
+tbody tr { cursor: pointer; transition: background .1s; }
+tbody tr:hover { background: var(--row-hover); }
+td.num {
+  text-align: right;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 12.5px;
+}
+td.symbol {
+  font-weight: 600;
+  color: var(--text-bright);
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+}
+td.positive { color: var(--green); }
+td.negative { color: var(--red); }
+td.src-badge {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+/* ── News List ──────────────────────────────── */
+.news-list { list-style: none; }
+.news-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #151c28;
+  cursor: pointer;
+  transition: background .1s;
+}
+.news-item:hover { background: var(--row-hover); }
+.news-time {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--text-dim);
+  width: 48px;
+  text-align: right;
+  padding-top: 2px;
+}
+.news-source {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--bg-header);
+  border: 1px solid var(--border);
+  color: var(--cyan);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.news-title {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
+}
+.news-summary {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 3px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Footer ─────────────────────────────────── */
+#footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 20px;
+  background: var(--bg-header);
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+#footer .health-good { color: var(--green); }
+#footer .health-warn { color: var(--yellow); }
+#footer .health-bad { color: var(--red); }
+#footer .spacer { flex: 1; }
+
+/* ── Score Badges ──────────────────────────── */
+.score-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  padding: 1px 5px;
+  border-radius: 3px;
+  min-width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.score-high { background: #064e3b; color: var(--green); border: 1px solid #065f46; }
+.score-mid  { background: #451a03; color: var(--yellow); border: 1px solid #78350f; }
+.score-low  { background: #450a0a; color: var(--red); border: 1px solid #7f1d1d; }
+
+/* ── Loading / Empty ────────────────────────── */
+.loading, .empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+.loading::before {
+  content: '';
+  display: block;
+  width: 24px; height: 24px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  margin: 0 auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Responsive ─────────────────────────────── */
+@media (max-width: 768px) {
+  #header { flex-wrap: wrap; padding: 8px 12px; }
+  #search-box { width: 100%; margin-left: 0; margin-top: 6px; order: 10; }
+  #tab-bar { padding: 0 8px; overflow-x: auto; }
+  .tab-btn { padding: 8px 12px; font-size: 12px; }
+  #content { padding: 10px 8px; }
+  table { font-size: 12px; }
+  td, th { padding: 5px 6px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div id="header">
+  <span class="logo">MONITORCREBIRTH</span>
+  <span class="status-dot" id="status-dot"></span>
+  <span class="status-label" id="status-label">Connecting...</span>
+  <div class="stats">
+    <span><b id="stat-entries">-</b> entries</span>
+    <span><b id="stat-news">-</b> news</span>
+    <span><b id="stat-sources">-</b> sources</span>
+  </div>
+  <input type="text" id="search-box" placeholder="Search symbol, name...">
+</div>
+
+<!-- Tabs -->
+<div id="tab-bar">
+  <button class="tab-btn active" data-tab="crypto">Crypto</button>
+  <button class="tab-btn" data-tab="stock_index">Indices</button>
+  <button class="tab-btn" data-tab="forex">Forex</button>
+  <button class="tab-btn" data-tab="commodity">Commodities</button>
+  <button class="tab-btn" data-tab="crypto_exchange">Exchanges</button>
+  <button class="tab-btn" data-tab="news">News</button>
+  <button id="refresh-btn" title="Refresh now">&#x21bb; Refresh</button>
+</div>
+
+<!-- Content -->
+<div id="content">
+  <div class="loading">Loading...</div>
+</div>
+
+<!-- Footer -->
+<div id="footer">
+  <span id="sources-health"></span>
+  <span class="spacer"></span>
+  <span id="last-refresh">Last refresh: -</span>
+  <span id="countdown">Auto: 30s</span>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  const API = 'http://localhost:8420/api/v1';
+  const REFRESH_SEC = 30;
+
+  let activeTab = 'crypto';
+  let searchQuery = '';
+  let countdownSec = REFRESH_SEC;
+  let lastRefreshTime = null;
+  let cachedData = {};
+
+  // ── DOM refs ──
+  const $content = document.getElementById('content');
+  const $searchBox = document.getElementById('search-box');
+  const $statusDot = document.getElementById('status-dot');
+  const $statusLabel = document.getElementById('status-label');
+  const $statEntries = document.getElementById('stat-entries');
+  const $statNews = document.getElementById('stat-news');
+  const $statSources = document.getElementById('stat-sources');
+  const $sourcesHealth = document.getElementById('sources-health');
+  const $lastRefresh = document.getElementById('last-refresh');
+  const $countdown = document.getElementById('countdown');
+  const $refreshBtn = document.getElementById('refresh-btn');
+
+  // ── Formatting helpers ──
+  function fmtPrice(v, currency) {
+    if (v == null || v === 0) return '-';
+    const c = (currency || 'USD').toUpperCase();
+    const sym = c === 'USD' ? '$' : c === 'EUR' ? '\u20ac' : c === 'GBP' ? '\u00a3' : '';
+    if (v >= 1000) return sym + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (v >= 1) return sym + v.toFixed(2);
+    if (v >= 0.01) return sym + v.toFixed(4);
+    return sym + v.toFixed(6);
+  }
+
+  function fmtPct(v) {
+    if (v == null) return '-';
+    const s = (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+    return s;
+  }
+
+  function fmtVolume(v) {
+    if (!v || v === 0) return '-';
+    if (v >= 1e12) return (v / 1e12).toFixed(1) + 'T';
+    if (v >= 1e9) return (v / 1e9).toFixed(1) + 'B';
+    if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+    if (v >= 1e3) return (v / 1e3).toFixed(1) + 'K';
+    return v.toFixed(0);
+  }
+
+  function timeAgo(ts) {
+    if (!ts) return '-';
+    const diff = Math.floor(Date.now() / 1000) - ts;
+    if (diff < 60) return diff + 's';
+    if (diff < 3600) return Math.floor(diff / 60) + 'min';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h';
+    return Math.floor(diff / 86400) + 'd';
+  }
+
+  function escHtml(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function fmtScore(score) {
+    if (score == null) return '';
+    const v = Math.round(score);
+    const cls = v >= 70 ? 'score-high' : v >= 40 ? 'score-mid' : 'score-low';
+    return '<span class="score-badge ' + cls + '">' + v + '</span>';
+  }
+
+  // ── External URL builder ──
+  function entryUrl(entry) {
+    const sym = (entry.symbol || '').toUpperCase();
+    const cat = entry.category || '';
+    if (cat === 'crypto') return 'https://www.coingecko.com/en/coins/' + encodeURIComponent((entry.display_name || sym).toLowerCase());
+    if (cat === 'stock_index') return 'https://finance.yahoo.com/quote/' + encodeURIComponent(sym);
+    if (cat === 'forex') return 'https://finance.yahoo.com/quote/' + encodeURIComponent(sym) + '=X';
+    if (cat === 'commodity') return 'https://finance.yahoo.com/quote/' + encodeURIComponent(sym) + '=F';
+    if (cat === 'crypto_exchange') return 'https://www.coingecko.com/en/exchanges/' + encodeURIComponent((entry.display_name || sym).toLowerCase().replace(/\s+/g, '-'));
+    return '#';
+  }
+
+  // ── Source colors for news badges ──
+  const sourceColors = {};
+  const palette = ['#06b6d4','#3b82f6','#a78bfa','#f59e0b','#ec4899','#10b981','#f97316','#8b5cf6','#14b8a6','#e11d48'];
+  let colorIdx = 0;
+  function sourceColor(name) {
+    if (!sourceColors[name]) {
+      sourceColors[name] = palette[colorIdx % palette.length];
+      colorIdx++;
+    }
+    return sourceColors[name];
+  }
+
+  // ── Fetch helpers ──
+  async function apiFetch(path) {
+    const resp = await fetch(API + path);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    return resp.json();
+  }
+
+  // ── Render Data Table ──
+  function renderTable(entries, category) {
+    if (!entries || entries.length === 0) {
+      $content.innerHTML = '<div class="empty-state">No data for this category</div>';
+      return;
+    }
+
+    // Filter by search
+    let filtered = entries;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      filtered = entries.filter(e =>
+        (e.symbol && e.symbol.toLowerCase().includes(q)) ||
+        (e.display_name && e.display_name.toLowerCase().includes(q)) ||
+        (e.source && e.source.toLowerCase().includes(q))
+      );
+    }
+
+    // Sort
+    if (category === 'crypto') {
+      filtered.sort((a, b) => (b.volume || 0) - (a.volume || 0));
+    } else {
+      filtered.sort((a, b) => {
+        const sa = (a.source || '').localeCompare(b.source || '');
+        return sa !== 0 ? sa : (a.symbol || '').localeCompare(b.symbol || '');
+      });
+    }
+
+    const showVolume = (category === 'crypto' || category === 'crypto_exchange');
+
+    let html = '<table><thead><tr>';
+    html += '<th>Symbol</th>';
+    html += '<th>Name</th>';
+    html += '<th class="num">Price</th>';
+    html += '<th class="num">24h %</th>';
+    if (showVolume) html += '<th class="num">Volume</th>';
+    html += '<th>Source</th>';
+    html += '</tr></thead><tbody>';
+
+    for (const e of filtered) {
+      const chgClass = (e.change_pct > 0) ? 'positive' : (e.change_pct < 0) ? 'negative' : '';
+      const url = entryUrl(e);
+      html += '<tr onclick="window.open(\'' + escHtml(url) + '\',\'_blank\')">';
+      html += '<td class="symbol">' + escHtml(e.symbol) + '</td>';
+      html += '<td>' + escHtml(e.display_name) + '</td>';
+      html += '<td class="num">' + fmtPrice(e.value, e.currency) + '</td>';
+      html += '<td class="num ' + chgClass + '">' + fmtPct(e.change_pct) + '</td>';
+      if (showVolume) html += '<td class="num">' + fmtVolume(e.volume) + '</td>';
+      html += '<td class="src-badge">' + escHtml(e.source) + '</td>';
+      html += '</tr>';
+    }
+
+    html += '</tbody></table>';
+    if (filtered.length === 0 && searchQuery) {
+      html += '<div class="empty-state">No results for "' + escHtml(searchQuery) + '"</div>';
+    }
+    $content.innerHTML = html;
+  }
+
+  // ── Render News ──
+  function renderNews(items) {
+    if (!items || items.length === 0) {
+      $content.innerHTML = '<div class="empty-state">No news available</div>';
+      return;
+    }
+
+    let filtered = items;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      filtered = items.filter(n =>
+        (n.title && n.title.toLowerCase().includes(q)) ||
+        (n.source && n.source.toLowerCase().includes(q)) ||
+        (n.summary && n.summary.toLowerCase().includes(q))
+      );
+    }
+
+    // Sort by score desc, then published_at desc as tiebreaker
+    filtered.sort((a, b) => {
+      const sa = (b.score || 0) - (a.score || 0);
+      if (sa !== 0) return sa;
+      return (b.published_at || 0) - (a.published_at || 0);
+    });
+
+    let html = '<ul class="news-list">';
+    for (const n of filtered) {
+      const color = sourceColor(n.source || 'Unknown');
+      const url = n.url ? escHtml(n.url) : '#';
+      html += '<li class="news-item" onclick="window.open(\'' + url + '\',\'_blank\')">';
+      html += '<span class="news-time">' + timeAgo(n.published_at) + '</span>';
+      html += fmtScore(n.score);
+      html += '<span class="news-source" style="color:' + color + ';border-color:' + color + '40">' + escHtml(n.source) + '</span>';
+      html += '<div><div class="news-title">' + escHtml(n.title) + '</div>';
+      if (n.summary) html += '<div class="news-summary">' + escHtml(n.summary) + '</div>';
+      html += '</div></li>';
+    }
+    html += '</ul>';
+    if (filtered.length === 0 && searchQuery) {
+      html += '<div class="empty-state">No results for "' + escHtml(searchQuery) + '"</div>';
+    }
+    $content.innerHTML = html;
+  }
+
+  // ── Load active tab data ──
+  async function loadTab() {
+    $content.innerHTML = '<div class="loading">Loading...</div>';
+    try {
+      if (activeTab === 'news') {
+        const json = await apiFetch('/news');
+        cachedData.news = json.data || [];
+        renderNews(cachedData.news);
+      } else {
+        const json = await apiFetch('/entries?category=' + activeTab);
+        cachedData[activeTab] = json.data || [];
+        renderTable(cachedData[activeTab], activeTab);
+      }
+      lastRefreshTime = Date.now();
+    } catch (err) {
+      $content.innerHTML = '<div class="empty-state">Failed to fetch data: ' + escHtml(err.message) + '</div>';
+    }
+  }
+
+  // ── Load status + sources ──
+  async function loadMeta() {
+    try {
+      const status = await apiFetch('/status');
+      $statusDot.classList.add('online');
+      $statusLabel.textContent = 'Online';
+      $statEntries.textContent = (status.entries_count || 0).toLocaleString();
+      $statNews.textContent = (status.news_count || 0).toLocaleString();
+    } catch {
+      $statusDot.classList.remove('online');
+      $statusLabel.textContent = 'Offline';
+      $statEntries.textContent = '-';
+      $statNews.textContent = '-';
+    }
+
+    try {
+      const src = await apiFetch('/sources');
+      const sources = src.sources || [];
+      $statSources.textContent = sources.length;
+      const healthy = sources.filter(s => s.health === 'healthy').length;
+      const degraded = sources.filter(s => s.health === 'degraded').length;
+      const failing = sources.filter(s => s.health === 'failing').length;
+      let parts = [];
+      if (healthy > 0) parts.push('<span class="health-good">' + healthy + ' healthy</span>');
+      if (degraded > 0) parts.push('<span class="health-warn">' + degraded + ' degraded</span>');
+      if (failing > 0) parts.push('<span class="health-bad">' + failing + ' failing</span>');
+      $sourcesHealth.innerHTML = 'Sources: ' + (parts.join(' &middot; ') || '-');
+    } catch {
+      $sourcesHealth.textContent = 'Sources: -';
+      $statSources.textContent = '-';
+    }
+  }
+
+  // ── Refresh all ──
+  async function refreshAll() {
+    countdownSec = REFRESH_SEC;
+    await Promise.all([loadTab(), loadMeta()]);
+  }
+
+  // ── Re-render from cache (for search filtering) ──
+  function rerenderFromCache() {
+    if (activeTab === 'news') {
+      if (cachedData.news) renderNews(cachedData.news);
+    } else {
+      if (cachedData[activeTab]) renderTable(cachedData[activeTab], activeTab);
+    }
+  }
+
+  // ── Tab switching ──
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelector('.tab-btn.active').classList.remove('active');
+      btn.classList.add('active');
+      activeTab = btn.dataset.tab;
+      // If cached, render immediately then refresh in background
+      if (cachedData[activeTab] || (activeTab === 'news' && cachedData.news)) {
+        rerenderFromCache();
+        loadTab();
+      } else {
+        loadTab();
+      }
+    });
+  });
+
+  // ── Search ──
+  $searchBox.addEventListener('input', () => {
+    searchQuery = $searchBox.value.trim();
+    rerenderFromCache();
+  });
+
+  // ── Refresh button ──
+  $refreshBtn.addEventListener('click', () => refreshAll());
+
+  // ── Countdown timer ──
+  setInterval(() => {
+    countdownSec--;
+    if (countdownSec <= 0) {
+      refreshAll();
+    }
+    $countdown.textContent = 'Auto: ' + countdownSec + 's';
+    if (lastRefreshTime) {
+      const ago = Math.floor((Date.now() - lastRefreshTime) / 1000);
+      $lastRefresh.textContent = 'Last refresh: ' + ago + 's ago';
+    }
+  }, 1000);
+
+  // ── Keyboard shortcut ──
+  document.addEventListener('keydown', (e) => {
+    if (e.key === '/' && document.activeElement !== $searchBox) {
+      e.preventDefault();
+      $searchBox.focus();
+    }
+    if (e.key === 'Escape') {
+      $searchBox.value = '';
+      searchQuery = '';
+      $searchBox.blur();
+      rerenderFromCache();
+    }
+  });
+
+  // ── Init ──
+  refreshAll();
+})();
+</script>
+</body>
+</html>

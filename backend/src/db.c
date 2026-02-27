@@ -45,7 +45,8 @@ static const char *SCHEMA_SQL =
     "  summary      TEXT,"
     "  category     INTEGER NOT NULL,"
     "  published_at INTEGER,"
-    "  fetched_at   INTEGER NOT NULL"
+    "  fetched_at   INTEGER NOT NULL,"
+    "  base_score   REAL DEFAULT 50.0"
     ");"
 
     "CREATE INDEX IF NOT EXISTS idx_news_pub ON news_items(published_at DESC);"
@@ -102,6 +103,14 @@ mc_error_t mc_db_migrate(mc_db_t *db)
         sqlite3_free(err);
         return MC_ERR_DB;
     }
+
+    /* Migration: add base_score column if missing (ignore error = already exists) */
+    err = NULL;
+    sqlite3_exec(db->handle,
+        "ALTER TABLE news_items ADD COLUMN base_score REAL DEFAULT 50.0;",
+        NULL, NULL, &err);
+    if (err) sqlite3_free(err);
+
     MC_LOG_INFO("Database migration complete");
     return MC_OK;
 }
@@ -151,8 +160,8 @@ mc_error_t mc_db_insert_news(mc_db_t *db, const mc_news_item_t *item)
 {
     const char *sql =
         "INSERT OR IGNORE INTO news_items "
-        "(title,source,url,summary,category,published_at,fetched_at) "
-        "VALUES (?,?,?,?,?,?,?)";
+        "(title,source,url,summary,category,published_at,fetched_at,base_score) "
+        "VALUES (?,?,?,?,?,?,?,?)";
 
     pthread_mutex_lock(&db->mutex);
 
@@ -171,6 +180,7 @@ mc_error_t mc_db_insert_news(mc_db_t *db, const mc_news_item_t *item)
     sqlite3_bind_int(stmt, 5, item->category);
     sqlite3_bind_int64(stmt, 6, item->published_at);
     sqlite3_bind_int64(stmt, 7, item->fetched_at);
+    sqlite3_bind_double(stmt, 8, item->score);
 
     rc = sqlite3_step(stmt);
     sqlite3_finalize(stmt);
@@ -263,9 +273,9 @@ int mc_db_get_latest_news(mc_db_t *db, mc_category_t cat,
                           mc_news_item_t *out, int max_count)
 {
     const char *sql =
-        "SELECT id,title,source,url,summary,category,published_at,fetched_at "
+        "SELECT id,title,source,url,summary,category,published_at,fetched_at,base_score "
         "FROM news_items WHERE category=? "
-        "ORDER BY published_at DESC LIMIT ?";
+        "ORDER BY base_score DESC, published_at DESC LIMIT ?";
 
     pthread_mutex_lock(&db->mutex);
     sqlite3_stmt *stmt;
@@ -301,6 +311,7 @@ int mc_db_get_latest_news(mc_db_t *db, mc_category_t cat,
         n->category = sqlite3_column_int(stmt, 5);
         n->published_at = sqlite3_column_int64(stmt, 6);
         n->fetched_at = sqlite3_column_int64(stmt, 7);
+        n->score = sqlite3_column_double(stmt, 8);
 
         count++;
     }
@@ -313,9 +324,9 @@ int mc_db_get_all_latest_news(mc_db_t *db,
                                mc_news_item_t *out, int max_count)
 {
     const char *sql =
-        "SELECT id,title,source,url,summary,category,published_at,fetched_at "
+        "SELECT id,title,source,url,summary,category,published_at,fetched_at,base_score "
         "FROM news_items "
-        "ORDER BY published_at DESC LIMIT ?";
+        "ORDER BY base_score DESC, published_at DESC LIMIT ?";
 
     pthread_mutex_lock(&db->mutex);
     sqlite3_stmt *stmt;
@@ -350,6 +361,7 @@ int mc_db_get_all_latest_news(mc_db_t *db,
         n->category = sqlite3_column_int(stmt, 5);
         n->published_at = sqlite3_column_int64(stmt, 6);
         n->fetched_at = sqlite3_column_int64(stmt, 7);
+        n->score = sqlite3_column_double(stmt, 8);
 
         count++;
     }

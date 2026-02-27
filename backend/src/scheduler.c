@@ -76,6 +76,28 @@ struct mc_scheduler {
     volatile time_t    ws_last_snapshot;
 };
 
+static double time_decay_factor(time_t published_at)
+{
+    if (published_at == 0) return 0.10;
+    double age_h = difftime(time(NULL), published_at) / 3600.0;
+    if (age_h < 1.0)  return 1.00;
+    if (age_h < 3.0)  return 0.85;
+    if (age_h < 6.0)  return 0.65;
+    if (age_h < 12.0) return 0.45;
+    if (age_h < 24.0) return 0.25;
+    return 0.10;
+}
+
+static int cmp_news_score(const void *a, const void *b)
+{
+    const mc_news_item_t *na = a, *nb = b;
+    if (nb->score != na->score)
+        return (nb->score > na->score) ? 1 : -1;
+    if (nb->published_at != na->published_at)
+        return (nb->published_at > na->published_at) ? 1 : -1;
+    return (nb->id > na->id) ? 1 : (nb->id < na->id) ? -1 : 0;
+}
+
 static void update_snapshot(mc_scheduler_t *sched)
 {
     /* Query DB into temp buffers WITHOUT holding the snapshot lock,
@@ -95,6 +117,12 @@ static void update_snapshot(mc_scheduler_t *sched)
 
     int tmp_news_count = mc_db_get_all_latest_news(sched->db,
                             tmp_news, MAX_SNAPSHOT_NEWS);
+
+    /* Apply time decay to news scores and sort by final score */
+    for (int i = 0; i < tmp_news_count; i++)
+        tmp_news[i].score *= time_decay_factor(tmp_news[i].published_at);
+    if (tmp_news_count > 1)
+        qsort(tmp_news, tmp_news_count, sizeof(mc_news_item_t), cmp_news_score);
 
     /* Hold write lock only for the fast memcpy */
     pthread_rwlock_wrlock(&sched->snapshot_lock);

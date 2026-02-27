@@ -71,6 +71,11 @@ static void parse_rss_sources(toml_table_t *source_tbl, mc_config_t *cfg)
         d = toml_int_in(t, "refresh_interval_sec");
         s->refresh_interval_sec = d.ok ? (int)d.u.i : cfg->refresh_interval_sec;
 
+        d = toml_int_in(t, "tier");
+        s->tier = d.ok ? (int)d.u.i : 3;
+        if (s->tier < 1) s->tier = 1;
+        if (s->tier > 3) s->tier = 3;
+
         cfg->rss_count++;
     }
 }

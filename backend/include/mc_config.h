@@ -15,6 +15,7 @@ typedef struct {
     char          url[MC_MAX_URL];
     mc_category_t category;
     int           refresh_interval_sec;
+    int           tier;              /* 1=high, 2=mid, 3=low (default) */
 } mc_rss_source_cfg_t;
 
 typedef struct {

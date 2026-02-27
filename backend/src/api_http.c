@@ -44,6 +44,7 @@ static cJSON *news_to_json(const mc_news_item_t *n)
     cJSON_AddStringToObject(obj, "category", mc_category_str(n->category));
     cJSON_AddNumberToObject(obj, "published_at", (double)n->published_at);
     cJSON_AddNumberToObject(obj, "fetched_at", (double)n->fetched_at);
+    cJSON_AddNumberToObject(obj, "score", n->score);
     return obj;
 }
 

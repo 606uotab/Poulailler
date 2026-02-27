@@ -10,7 +10,7 @@
 #define MC_MAX_NAME      128
 #define MC_MAX_SOURCE    64
 #define MC_MAX_CATEGORY  64
-#define MC_MAX_SUMMARY   1024
+#define MC_MAX_SUMMARY   3334
 #define MC_MAX_SOURCES   64
 
 typedef enum {
@@ -53,6 +53,7 @@ typedef struct {
     mc_category_t category;
     time_t        published_at;
     time_t        fetched_at;
+    double        score;
 } mc_news_item_t;
 
 const char *mc_source_type_str(mc_source_type_t t);

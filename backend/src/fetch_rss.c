@@ -102,6 +102,7 @@ static int parse_feed(const char *xml_data, size_t xml_len,
         strncpy(n->source, cfg->name, MC_MAX_SOURCE - 1);
         n->category = cfg->category;
         n->fetched_at = now;
+        n->score = (cfg->tier == 1) ? 100.0 : (cfg->tier == 2) ? 75.0 : 50.0;
 
         for (xmlNodePtr child = item_node->children; child; child = child->next) {
             if (child->type != XML_ELEMENT_NODE) continue;
