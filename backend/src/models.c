@@ -21,6 +21,8 @@ const char *mc_category_str(mc_category_t c)
     case MC_CAT_NEWS:        return "news";
     case MC_CAT_CUSTOM:          return "custom";
     case MC_CAT_CRYPTO_EXCHANGE: return "crypto_exchange";
+    case MC_CAT_FINANCIAL_NEWS:  return "financial_news";
+    case MC_CAT_OFFICIAL_PUB:    return "official_pub";
     }
     return "custom";
 }
@@ -34,5 +36,7 @@ mc_category_t mc_category_from_str(const char *s)
     if (strcmp(s, "forex") == 0)            return MC_CAT_FOREX;
     if (strcmp(s, "news") == 0)             return MC_CAT_NEWS;
     if (strcmp(s, "crypto_exchange") == 0)  return MC_CAT_CRYPTO_EXCHANGE;
+    if (strcmp(s, "financial_news") == 0)  return MC_CAT_FINANCIAL_NEWS;
+    if (strcmp(s, "official_pub") == 0)    return MC_CAT_OFFICIAL_PUB;
     return MC_CAT_CUSTOM;
 }

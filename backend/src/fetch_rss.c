@@ -104,6 +104,9 @@ static int parse_feed(const char *xml_data, size_t xml_len,
         n->fetched_at = now;
         n->score = (cfg->tier == 1) ? 100.0 : (cfg->tier == 2) ? 75.0 : 50.0;
 
+        strncpy(n->region, cfg->region, MC_MAX_REGION - 1);
+        strncpy(n->country, cfg->country, MC_MAX_COUNTRY - 1);
+
         for (xmlNodePtr child = item_node->children; child; child = child->next) {
             if (child->type != XML_ELEMENT_NODE) continue;
             const char *name = (const char *)child->name;

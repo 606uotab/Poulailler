@@ -76,6 +76,12 @@ static void parse_rss_sources(toml_table_t *source_tbl, mc_config_t *cfg)
         if (s->tier < 1) s->tier = 1;
         if (s->tier > 3) s->tier = 3;
 
+        d = toml_string_in(t, "region");
+        if (d.ok) { safe_copy(s->region, d.u.s, MC_MAX_REGION); free(d.u.s); }
+
+        d = toml_string_in(t, "country");
+        if (d.ok) { safe_copy(s->country, d.u.s, MC_MAX_COUNTRY); free(d.u.s); }
+
         cfg->rss_count++;
     }
 }

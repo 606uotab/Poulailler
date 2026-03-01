@@ -74,6 +74,8 @@ static mc_category_t cat_from_str(const char *s)
     if (strcmp(s, "forex") == 0)            return MC_CAT_FOREX;
     if (strcmp(s, "news") == 0)             return MC_CAT_NEWS;
     if (strcmp(s, "crypto_exchange") == 0)  return MC_CAT_CRYPTO_EXCHANGE;
+    if (strcmp(s, "financial_news") == 0)  return MC_CAT_FINANCIAL_NEWS;
+    if (strcmp(s, "official_pub") == 0)    return MC_CAT_OFFICIAL_PUB;
     return MC_CAT_CUSTOM;
 }
 
@@ -192,6 +194,15 @@ int mc_client_get_news(mc_client_t *c, mc_news_item_t *out, int max)
 
         v = cJSON_GetObjectItem(item, "fetched_at");
         if (v) news->fetched_at = (time_t)v->valuedouble;
+
+        v = cJSON_GetObjectItem(item, "score");
+        if (v) news->score = v->valuedouble;
+
+        v = cJSON_GetObjectItem(item, "region");
+        if (v && v->valuestring) strncpy(news->region, v->valuestring, MC_MAX_REGION - 1);
+
+        v = cJSON_GetObjectItem(item, "country");
+        if (v && v->valuestring) strncpy(news->country, v->valuestring, MC_MAX_COUNTRY - 1);
 
         count++;
     }

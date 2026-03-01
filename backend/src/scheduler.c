@@ -11,7 +11,7 @@
 #include <time.h>
 
 #define MAX_SNAPSHOT_ENTRIES 2048
-#define MAX_SNAPSHOT_NEWS   512
+#define MAX_SNAPSHOT_NEWS   2048
 #define PRUNE_INTERVAL_SEC  120   /* Prune DB every 2 minutes */
 #define PRUNE_MAX_AGE_SEC   3600  /* Keep data for 1 hour */
 #define MAX_BACKOFF_SEC     300   /* Max retry backoff: 5 min */
@@ -262,19 +262,45 @@ static void *rest_worker_func(void *arg)
         const mc_rest_source_cfg_t *src = &sched->cfg->rest_sources[idx];
         source_health_t *h = &sched->rest_health[idx];
 
-        int n = mc_fetch_rest(src, entries, MAX_SNAPSHOT_ENTRIES);
-        if (n > 0) {
-            for (int j = 0; j < n; j++)
-                mc_db_insert_entry(sched->db, &entries[j]);
-            mc_db_update_source_status(sched->db, src->name,
-                                       MC_SOURCE_REST, NULL);
-            record_success(h);
-        } else if (n == 0) {
-            h->last_attempt = time(NULL);
+        /* Calendar sources produce news items, not data entries */
+        if (src->category == MC_CAT_FINANCIAL_NEWS) {
+            mc_news_item_t *cal_news = malloc(256 * sizeof(mc_news_item_t));
+            if (cal_news) {
+                int n = mc_fetch_rest_calendar(src, cal_news, 256);
+                MC_LOG_INFO("Calendar worker: %s returned %d events", src->name, n);
+                if (n > 0) {
+                    for (int j = 0; j < n; j++) {
+                        mc_error_t err = mc_db_insert_news(sched->db, &cal_news[j]);
+                        if (err != MC_OK)
+                            MC_LOG_ERROR("Calendar insert failed for: %s", cal_news[j].title);
+                    }
+                    mc_db_update_source_status(sched->db, src->name,
+                                               MC_SOURCE_REST, NULL);
+                    record_success(h);
+                } else if (n == 0) {
+                    h->last_attempt = time(NULL);
+                } else {
+                    mc_db_update_source_status(sched->db, src->name,
+                                               MC_SOURCE_REST, "fetch failed");
+                    record_failure(h, src->name);
+                }
+                free(cal_news);
+            }
         } else {
-            mc_db_update_source_status(sched->db, src->name,
-                                       MC_SOURCE_REST, "fetch failed");
-            record_failure(h, src->name);
+            int n = mc_fetch_rest(src, entries, MAX_SNAPSHOT_ENTRIES);
+            if (n > 0) {
+                for (int j = 0; j < n; j++)
+                    mc_db_insert_entry(sched->db, &entries[j]);
+                mc_db_update_source_status(sched->db, src->name,
+                                           MC_SOURCE_REST, NULL);
+                record_success(h);
+            } else if (n == 0) {
+                h->last_attempt = time(NULL);
+            } else {
+                mc_db_update_source_status(sched->db, src->name,
+                                           MC_SOURCE_REST, "fetch failed");
+                record_failure(h, src->name);
+            }
         }
 
         /* Signal batch progress */

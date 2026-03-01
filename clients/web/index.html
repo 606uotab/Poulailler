@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MonitorCrebirth</title>
+<title>Poulailler</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -250,6 +250,96 @@ td.src-badge {
 #footer .health-bad { color: var(--red); }
 #footer .spacer { flex: 1; }
 
+/* ── Impact Badges ─────────────────────────── */
+.impact-high { background: #450a0a; color: var(--red); border: 1px solid #7f1d1d; }
+.impact-medium { background: #451a03; color: var(--yellow); border: 1px solid #78350f; }
+.impact-low { background: #1a2e05; color: #84cc16; border: 1px solid #365314; }
+.impact-holiday { background: #1e1b4b; color: var(--purple); border: 1px solid #312e81; }
+.impact-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  min-width: 48px;
+  text-align: center;
+}
+
+/* ── Calendar Table ────────────────────────── */
+.cal-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cal-table thead th {
+  position: sticky; top: 0;
+  background: var(--bg-header);
+  color: var(--text-dim);
+  font-weight: 600; font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 8px 10px; text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.cal-table tbody td {
+  padding: 6px 10px;
+  border-bottom: 1px solid #151c28;
+  white-space: nowrap;
+}
+.cal-table tbody tr { transition: background .1s; }
+.cal-table tbody tr:hover { background: var(--row-hover); }
+.cal-table .cal-date { color: var(--text-dim); font-family: monospace; font-size: 12px; }
+.cal-table .cal-event { color: var(--text-bright); font-weight: 500; }
+.cal-table .cal-actual { color: var(--green); font-family: monospace; }
+.cal-table .cal-num { text-align: right; font-family: monospace; font-size: 12px; color: var(--text-dim); }
+
+/* ── Section headers ───────────────────────── */
+.section-title {
+  font-size: 13px; font-weight: 600; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 1px;
+  margin: 16px 0 8px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Impact filter ─────────────────────────── */
+#impact-filter {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+}
+#impact-filter:focus { border-color: var(--accent); }
+#impact-filter option { background: var(--bg-card); color: var(--text); }
+
+/* ── Region Filter ─────────────────────────── */
+#region-filter {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+}
+#region-filter:focus { border-color: var(--accent); }
+#region-filter option { background: var(--bg-card); color: var(--text); }
+
+/* ── Country Badge ─────────────────────────── */
+.country-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--purple);
+  margin-left: 4px;
+  vertical-align: middle;
+  letter-spacing: 0.5px;
+}
+
 /* ── Score Badges ──────────────────────────── */
 .score-badge {
   display: inline-block;
@@ -301,7 +391,7 @@ td.src-badge {
 
 <!-- Header -->
 <div id="header">
-  <span class="logo">MONITORCREBIRTH</span>
+  <span class="logo">POULAILLER</span>
   <span class="status-dot" id="status-dot"></span>
   <span class="status-label" id="status-label">Connecting...</span>
   <div class="stats">
@@ -309,6 +399,24 @@ td.src-badge {
     <span><b id="stat-news">-</b> news</span>
     <span><b id="stat-sources">-</b> sources</span>
   </div>
+  <select id="region-filter" style="display:none">
+    <option value="">All Regions</option>
+    <option value="Europe">Europe</option>
+    <option value="North America">North America</option>
+    <option value="Latin America">Latin America</option>
+    <option value="Asia-Pacific">Asia-Pacific</option>
+    <option value="Middle East">Middle East</option>
+    <option value="Africa">Africa</option>
+    <option value="Oceania">Oceania</option>
+    <option value="Global">Global</option>
+  </select>
+  <select id="impact-filter" style="display:none">
+    <option value="">All Impact</option>
+    <option value="High">High</option>
+    <option value="Medium">Medium</option>
+    <option value="Low">Low</option>
+    <option value="Holiday">Holiday</option>
+  </select>
   <input type="text" id="search-box" placeholder="Search symbol, name...">
 </div>
 
@@ -320,6 +428,8 @@ td.src-badge {
   <button class="tab-btn" data-tab="commodity">Commodities</button>
   <button class="tab-btn" data-tab="crypto_exchange">Exchanges</button>
   <button class="tab-btn" data-tab="news">News</button>
+  <button class="tab-btn" data-tab="financial_news">Finance</button>
+  <button class="tab-btn" data-tab="official_pub">Official</button>
   <button id="refresh-btn" title="Refresh now">&#x21bb; Refresh</button>
 </div>
 
@@ -345,6 +455,8 @@ td.src-badge {
 
   let activeTab = 'crypto';
   let searchQuery = '';
+  let regionFilter = '';
+  let impactFilter = '';
   let countdownSec = REFRESH_SEC;
   let lastRefreshTime = null;
   let cachedData = {};
@@ -361,6 +473,8 @@ td.src-badge {
   const $lastRefresh = document.getElementById('last-refresh');
   const $countdown = document.getElementById('countdown');
   const $refreshBtn = document.getElementById('refresh-btn');
+  const $regionFilter = document.getElementById('region-filter');
+  const $impactFilter = document.getElementById('impact-filter');
 
   // ── Formatting helpers ──
   function fmtPrice(v, currency) {
@@ -407,6 +521,17 @@ td.src-badge {
     const v = Math.round(score);
     const cls = v >= 70 ? 'score-high' : v >= 40 ? 'score-mid' : 'score-low';
     return '<span class="score-badge ' + cls + '">' + v + '</span>';
+  }
+
+  function countryFlag(code) {
+    if (!code || code.length !== 2) return '';
+    const cp = [...code.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65);
+    return String.fromCodePoint(...cp);
+  }
+
+  function fmtCountry(country) {
+    if (!country) return '';
+    return '<span class="country-badge">' + countryFlag(country) + ' ' + escHtml(country) + '</span>';
   }
 
   // ── External URL builder ──
@@ -507,9 +632,15 @@ td.src-badge {
     }
 
     let filtered = items;
+
+    // Region filter
+    if (regionFilter) {
+      filtered = filtered.filter(n => n.region === regionFilter);
+    }
+
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      filtered = items.filter(n =>
+      filtered = filtered.filter(n =>
         (n.title && n.title.toLowerCase().includes(q)) ||
         (n.source && n.source.toLowerCase().includes(q)) ||
         (n.summary && n.summary.toLowerCase().includes(q))
@@ -530,14 +661,187 @@ td.src-badge {
       html += '<li class="news-item" onclick="window.open(\'' + url + '\',\'_blank\')">';
       html += '<span class="news-time">' + timeAgo(n.published_at) + '</span>';
       html += fmtScore(n.score);
-      html += '<span class="news-source" style="color:' + color + ';border-color:' + color + '40">' + escHtml(n.source) + '</span>';
+      html += '<span class="news-source" style="color:' + color + ';border-color:' + color + '40">' + escHtml(n.source) + fmtCountry(n.country) + '</span>';
       html += '<div><div class="news-title">' + escHtml(n.title) + '</div>';
       if (n.summary) html += '<div class="news-summary">' + escHtml(n.summary) + '</div>';
       html += '</div></li>';
     }
     html += '</ul>';
-    if (filtered.length === 0 && searchQuery) {
-      html += '<div class="empty-state">No results for "' + escHtml(searchQuery) + '"</div>';
+    if (filtered.length === 0 && (searchQuery || regionFilter)) {
+      html += '<div class="empty-state">No results' + (searchQuery ? ' for "' + escHtml(searchQuery) + '"' : '') + '</div>';
+    }
+    $content.innerHTML = html;
+  }
+
+  // ── Parse calendar summary ──
+  function parseCalSummary(summary) {
+    const r = { impact: '-', forecast: '-', previous: '-', actual: '-' };
+    if (!summary) return r;
+    const parts = summary.split('|');
+    for (const p of parts) {
+      const kv = p.trim().split(':');
+      if (kv.length >= 2) {
+        const k = kv[0].trim().toLowerCase();
+        const v = kv.slice(1).join(':').trim();
+        if (k === 'impact') r.impact = v;
+        else if (k === 'forecast') r.forecast = v;
+        else if (k === 'previous') r.previous = v;
+        else if (k === 'actual') r.actual = v;
+      }
+    }
+    return r;
+  }
+
+  function fmtCalDate(ts) {
+    if (!ts) return '-';
+    const d = new Date(ts * 1000);
+    const day = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return day + ' ' + time;
+  }
+
+  function impactBadge(impact) {
+    const cls = impact === 'High' ? 'impact-high' :
+                impact === 'Medium' ? 'impact-medium' :
+                impact === 'Holiday' ? 'impact-holiday' : 'impact-low';
+    return '<span class="impact-badge ' + cls + '">' + escHtml(impact) + '</span>';
+  }
+
+  // ── Render Financial News (calendar + articles) ──
+  function renderFinancialNews(items) {
+    if (!items || items.length === 0) {
+      $content.innerHTML = '<div class="empty-state">No financial news available</div>';
+      return;
+    }
+
+    let filtered = items;
+
+    // Region filter
+    if (regionFilter) filtered = filtered.filter(n => n.region === regionFilter);
+
+    // Impact filter (calendar events only)
+    if (impactFilter) {
+      filtered = filtered.filter(n => {
+        if (n.source === 'Economic Calendar' || n.source === 'Myfxbook Calendar' || n.source === 'Investing.com Calendar') {
+          const cal = parseCalSummary(n.summary);
+          return cal.impact === impactFilter;
+        }
+        return true; // non-calendar items pass through
+      });
+    }
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(n =>
+        (n.title && n.title.toLowerCase().includes(q)) ||
+        (n.source && n.source.toLowerCase().includes(q)) ||
+        (n.summary && n.summary.toLowerCase().includes(q))
+      );
+    }
+
+    // Separate calendar events from articles
+    const calEvents = filtered.filter(n => (n.url || '').startsWith('cal://'));
+    const articles = filtered.filter(n => !(n.url || '').startsWith('cal://'));
+
+    // Sort calendar by published_at asc (chronological)
+    calEvents.sort((a, b) => (a.published_at || 0) - (b.published_at || 0));
+    // Sort articles by score desc
+    articles.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+    let html = '';
+
+    // Calendar table
+    if (calEvents.length > 0) {
+      html += '<div class="section-title">Economic Calendar (' + calEvents.length + ' events)</div>';
+      html += '<table class="cal-table"><thead><tr>';
+      html += '<th>Date</th><th>Event</th><th>Country</th><th>Impact</th>';
+      html += '<th style="text-align:right">Forecast</th>';
+      html += '<th style="text-align:right">Previous</th>';
+      html += '<th style="text-align:right">Actual</th>';
+      html += '</tr></thead><tbody>';
+
+      for (const ev of calEvents) {
+        const cal = parseCalSummary(ev.summary);
+        html += '<tr>';
+        html += '<td class="cal-date">' + fmtCalDate(ev.published_at) + '</td>';
+        html += '<td class="cal-event">' + escHtml(ev.title) + '</td>';
+        html += '<td>' + fmtCountry(ev.country) + '</td>';
+        html += '<td>' + impactBadge(cal.impact) + '</td>';
+        html += '<td class="cal-num">' + escHtml(cal.forecast) + '</td>';
+        html += '<td class="cal-num">' + escHtml(cal.previous) + '</td>';
+        html += '<td class="cal-num cal-actual">' + escHtml(cal.actual) + '</td>';
+        html += '</tr>';
+      }
+      html += '</tbody></table>';
+    }
+
+    // Articles
+    if (articles.length > 0) {
+      if (calEvents.length > 0)
+        html += '<div class="section-title" style="margin-top:24px">Financial Articles (' + articles.length + ')</div>';
+      html += '<ul class="news-list">';
+      for (const n of articles) {
+        const color = sourceColor(n.source || 'Unknown');
+        const url = n.url ? escHtml(n.url) : '#';
+        html += '<li class="news-item" onclick="window.open(\'' + url + '\',\'_blank\')">';
+        html += '<span class="news-time">' + timeAgo(n.published_at) + '</span>';
+        html += fmtScore(n.score);
+        html += '<span class="news-source" style="color:' + color + ';border-color:' + color + '40">' + escHtml(n.source) + fmtCountry(n.country) + '</span>';
+        html += '<div><div class="news-title">' + escHtml(n.title) + '</div>';
+        if (n.summary && !(n.url || '').startsWith('cal://'))
+          html += '<div class="news-summary">' + escHtml(n.summary) + '</div>';
+        html += '</div></li>';
+      }
+      html += '</ul>';
+    }
+
+    if (filtered.length === 0) {
+      html += '<div class="empty-state">No results' + (searchQuery ? ' for "' + escHtml(searchQuery) + '"' : '') + '</div>';
+    }
+    $content.innerHTML = html;
+  }
+
+  // ── Render Official Publications ──
+  function renderOfficialPub(items) {
+    if (!items || items.length === 0) {
+      $content.innerHTML = '<div class="empty-state">No official publications available</div>';
+      return;
+    }
+
+    let filtered = items;
+
+    if (regionFilter) filtered = filtered.filter(n => n.region === regionFilter);
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(n =>
+        (n.title && n.title.toLowerCase().includes(q)) ||
+        (n.source && n.source.toLowerCase().includes(q)) ||
+        (n.summary && n.summary.toLowerCase().includes(q))
+      );
+    }
+
+    filtered.sort((a, b) => {
+      const sa = (b.score || 0) - (a.score || 0);
+      if (sa !== 0) return sa;
+      return (b.published_at || 0) - (a.published_at || 0);
+    });
+
+    let html = '<ul class="news-list">';
+    for (const n of filtered) {
+      const color = sourceColor(n.source || 'Unknown');
+      const url = n.url ? escHtml(n.url) : '#';
+      html += '<li class="news-item" onclick="window.open(\'' + url + '\',\'_blank\')">';
+      html += '<span class="news-time">' + timeAgo(n.published_at) + '</span>';
+      html += fmtScore(n.score);
+      html += '<span class="news-source" style="color:' + color + ';border-color:' + color + '40">' + escHtml(n.source) + fmtCountry(n.country) + '</span>';
+      html += '<div><div class="news-title">' + escHtml(n.title) + '</div>';
+      if (n.summary) html += '<div class="news-summary">' + escHtml(n.summary) + '</div>';
+      html += '</div></li>';
+    }
+    html += '</ul>';
+    if (filtered.length === 0 && (searchQuery || regionFilter)) {
+      html += '<div class="empty-state">No results' + (searchQuery ? ' for "' + escHtml(searchQuery) + '"' : '') + '</div>';
     }
     $content.innerHTML = html;
   }
@@ -547,9 +851,17 @@ td.src-badge {
     $content.innerHTML = '<div class="loading">Loading...</div>';
     try {
       if (activeTab === 'news') {
-        const json = await apiFetch('/news');
+        const json = await apiFetch('/news?category=news');
         cachedData.news = json.data || [];
         renderNews(cachedData.news);
+      } else if (activeTab === 'financial_news') {
+        const json = await apiFetch('/news?category=financial_news');
+        cachedData.financial_news = json.data || [];
+        renderFinancialNews(cachedData.financial_news);
+      } else if (activeTab === 'official_pub') {
+        const json = await apiFetch('/news?category=official_pub');
+        cachedData.official_pub = json.data || [];
+        renderOfficialPub(cachedData.official_pub);
       } else {
         const json = await apiFetch('/entries?category=' + activeTab);
         cachedData[activeTab] = json.data || [];
@@ -604,6 +916,10 @@ td.src-badge {
   function rerenderFromCache() {
     if (activeTab === 'news') {
       if (cachedData.news) renderNews(cachedData.news);
+    } else if (activeTab === 'financial_news') {
+      if (cachedData.financial_news) renderFinancialNews(cachedData.financial_news);
+    } else if (activeTab === 'official_pub') {
+      if (cachedData.official_pub) renderOfficialPub(cachedData.official_pub);
     } else {
       if (cachedData[activeTab]) renderTable(cachedData[activeTab], activeTab);
     }
@@ -615,6 +931,11 @@ td.src-badge {
       document.querySelector('.tab-btn.active').classList.remove('active');
       btn.classList.add('active');
       activeTab = btn.dataset.tab;
+      // Show region filter on news, financial_news, official_pub tabs
+      const showRegion = (activeTab === 'news' || activeTab === 'financial_news' || activeTab === 'official_pub');
+      $regionFilter.style.display = showRegion ? '' : 'none';
+      // Show impact filter only on financial_news tab
+      $impactFilter.style.display = (activeTab === 'financial_news') ? '' : 'none';
       // If cached, render immediately then refresh in background
       if (cachedData[activeTab] || (activeTab === 'news' && cachedData.news)) {
         rerenderFromCache();
@@ -628,6 +949,18 @@ td.src-badge {
   // ── Search ──
   $searchBox.addEventListener('input', () => {
     searchQuery = $searchBox.value.trim();
+    rerenderFromCache();
+  });
+
+  // ── Region filter ──
+  $regionFilter.addEventListener('change', () => {
+    regionFilter = $regionFilter.value;
+    rerenderFromCache();
+  });
+
+  // ── Impact filter ──
+  $impactFilter.addEventListener('change', () => {
+    impactFilter = $impactFilter.value;
     rerenderFromCache();
   });
 

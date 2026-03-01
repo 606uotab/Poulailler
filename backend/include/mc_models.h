@@ -11,7 +11,9 @@
 #define MC_MAX_SOURCE    64
 #define MC_MAX_CATEGORY  64
 #define MC_MAX_SUMMARY   3334
-#define MC_MAX_SOURCES   64
+#define MC_MAX_SOURCES   256
+#define MC_MAX_REGION    32
+#define MC_MAX_COUNTRY   8
 
 typedef enum {
     MC_SOURCE_RSS,
@@ -26,7 +28,9 @@ typedef enum {
     MC_CAT_FOREX,
     MC_CAT_NEWS,
     MC_CAT_CUSTOM,
-    MC_CAT_CRYPTO_EXCHANGE
+    MC_CAT_CRYPTO_EXCHANGE,
+    MC_CAT_FINANCIAL_NEWS,
+    MC_CAT_OFFICIAL_PUB
 } mc_category_t;
 
 typedef struct {
@@ -54,6 +58,8 @@ typedef struct {
     time_t        published_at;
     time_t        fetched_at;
     double        score;
+    char          region[MC_MAX_REGION];
+    char          country[MC_MAX_COUNTRY];
 } mc_news_item_t;
 
 const char *mc_source_type_str(mc_source_type_t t);

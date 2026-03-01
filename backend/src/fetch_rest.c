@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include "mc_fetch_rest.h"
 #include "mc_log.h"
 
@@ -552,6 +553,169 @@ static int parse_generic_response(const char *json,
     }
 
     cJSON_Delete(root);
+    return count;
+}
+
+/* ── Economic calendar parser (faireconomy.media JSON) ── */
+
+static void calendar_country_to_region(const char *ccy,
+                                        char *region, size_t rlen,
+                                        char *country, size_t clen)
+{
+    region[0] = country[0] = '\0';
+    if (!ccy || !ccy[0]) return;
+
+    static const struct { const char *ccy; const char *region; const char *country; } map[] = {
+        {"USD", "North America", "US"}, {"CAD", "North America", "CA"},
+        {"EUR", "Europe", "EU"}, {"GBP", "Europe", "UK"},
+        {"CHF", "Europe", "CH"}, {"SEK", "Europe", "SE"},
+        {"NOK", "Europe", "NO"}, {"DKK", "Europe", "DK"},
+        {"PLN", "Europe", "PL"}, {"CZK", "Europe", "CZ"},
+        {"HUF", "Europe", "HU"}, {"RON", "Europe", "RO"},
+        {"JPY", "Asia-Pacific", "JP"}, {"CNY", "Asia-Pacific", "CN"},
+        {"AUD", "Oceania", "AU"}, {"NZD", "Oceania", "NZ"},
+        {"KRW", "Asia-Pacific", "KR"}, {"INR", "Asia-Pacific", "IN"},
+        {"SGD", "Asia-Pacific", "SG"}, {"HKD", "Asia-Pacific", "HK"},
+        {"BRL", "Latin America", "BR"}, {"MXN", "Latin America", "MX"},
+        {"TRY", "Middle East", "TR"}, {"ZAR", "Africa", "ZA"},
+        {NULL, NULL, NULL}
+    };
+
+    for (int i = 0; map[i].ccy; i++) {
+        if (strcmp(ccy, map[i].ccy) == 0) {
+            strncpy(region, map[i].region, rlen - 1);
+            strncpy(country, map[i].country, clen - 1);
+            return;
+        }
+    }
+    strncpy(region, "Global", rlen - 1);
+}
+
+static int parse_calendar_events(const char *json,
+                                  const mc_rest_source_cfg_t *cfg,
+                                  mc_news_item_t *out, int max_items)
+{
+    cJSON *root = cJSON_Parse(json);
+    if (!root || !cJSON_IsArray(root)) {
+        if (root) cJSON_Delete(root);
+        return 0;
+    }
+
+    int count = 0;
+    int n = cJSON_GetArraySize(root);
+    time_t now = time(NULL);
+
+    for (int i = 0; i < n && count < max_items; i++) {
+        cJSON *ev = cJSON_GetArrayItem(root, i);
+        if (!ev) continue;
+
+        const char *title = json_get_string(ev, "title");
+        if (!title || !title[0]) continue;
+
+        const char *ccy = json_get_string(ev, "country");
+        const char *date_str = json_get_string(ev, "date");
+        const char *impact = json_get_string(ev, "impact");
+        const char *forecast = json_get_string(ev, "forecast");
+        const char *previous = json_get_string(ev, "previous");
+        const char *actual = json_get_string(ev, "actual");
+
+        mc_news_item_t *item = &out[count];
+        memset(item, 0, sizeof(*item));
+
+        /* Title: "CPI m/m (USD)" */
+        if (ccy && ccy[0])
+            snprintf(item->title, MC_MAX_TITLE, "%s (%s)", title, ccy);
+        else
+            strncpy(item->title, title, MC_MAX_TITLE - 1);
+
+        strncpy(item->source, cfg->name, MC_MAX_SOURCE - 1);
+        item->category = MC_CAT_FINANCIAL_NEWS;
+
+        /* Unique URL for upsert */
+        if (date_str)
+            snprintf(item->url, MC_MAX_URL, "cal://%s/%s", date_str, title);
+        else
+            snprintf(item->url, MC_MAX_URL, "cal://unknown/%s/%d", title, i);
+
+        /* Summary: structured for parsing by frontend */
+        snprintf(item->summary, MC_MAX_SUMMARY,
+                 "Impact: %s | Forecast: %s | Previous: %s | Actual: %s",
+                 impact ? impact : "-",
+                 forecast ? forecast : "-",
+                 previous ? previous : "-",
+                 actual ? actual : "-");
+
+        /* Parse date (ISO 8601) */
+        if (date_str) {
+            struct tm tm = {0};
+            if (strptime(date_str, "%Y-%m-%dT%H:%M:%S", &tm))
+                item->published_at = mktime(&tm);
+            else
+                item->published_at = now;
+        } else {
+            item->published_at = now;
+        }
+
+        item->fetched_at = now;
+
+        /* Score based on impact */
+        if (impact) {
+            if (strcmp(impact, "High") == 0)        item->score = 100.0;
+            else if (strcmp(impact, "Medium") == 0)  item->score = 75.0;
+            else if (strcmp(impact, "Low") == 0)     item->score = 50.0;
+            else if (strcmp(impact, "Holiday") == 0) item->score = 25.0;
+            else                                     item->score = 50.0;
+        } else {
+            item->score = 50.0;
+        }
+
+        /* Region/country from currency code */
+        calendar_country_to_region(ccy,
+            item->region, MC_MAX_REGION,
+            item->country, MC_MAX_COUNTRY);
+
+        count++;
+    }
+
+    cJSON_Delete(root);
+    return count;
+}
+
+int mc_fetch_rest_calendar(const mc_rest_source_cfg_t *cfg,
+                           mc_news_item_t *news_out, int max_items)
+{
+    MC_LOG_DEBUG("Fetching calendar: %s", cfg->name);
+
+    char url[1024];
+    if (cfg->params[0])
+        snprintf(url, sizeof(url), "%s%s?%s", cfg->base_url, cfg->endpoint, cfg->params);
+    else
+        snprintf(url, sizeof(url), "%s%s", cfg->base_url, cfg->endpoint);
+
+    CURL *curl = curl_easy_init();
+    if (!curl) return -1;
+
+    mem_buf_t buf = {0};
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buf);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 15L);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "Poulailler/0.1");
+
+    CURLcode res = curl_easy_perform(curl);
+    curl_easy_cleanup(curl);
+
+    if (res != CURLE_OK) {
+        MC_LOG_ERROR("Calendar fetch failed for %s: %s", cfg->name,
+                     curl_easy_strerror(res));
+        free(buf.data);
+        return -1;
+    }
+
+    int count = parse_calendar_events(buf.data, cfg, news_out, max_items);
+    free(buf.data);
+
+    MC_LOG_INFO("Calendar %s: got %d events", cfg->name, count);
     return count;
 }
 

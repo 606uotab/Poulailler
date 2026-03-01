@@ -16,6 +16,8 @@ typedef struct {
     mc_category_t category;
     int           refresh_interval_sec;
     int           tier;              /* 1=high, 2=mid, 3=low (default) */
+    char          region[MC_MAX_REGION];
+    char          country[MC_MAX_COUNTRY];
 } mc_rss_source_cfg_t;
 
 typedef struct {

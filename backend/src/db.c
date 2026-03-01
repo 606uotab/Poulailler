@@ -46,7 +46,9 @@ static const char *SCHEMA_SQL =
     "  category     INTEGER NOT NULL,"
     "  published_at INTEGER,"
     "  fetched_at   INTEGER NOT NULL,"
-    "  base_score   REAL DEFAULT 50.0"
+    "  base_score   REAL DEFAULT 50.0,"
+    "  region       TEXT DEFAULT '',"
+    "  country      TEXT DEFAULT ''"
     ");"
 
     "CREATE INDEX IF NOT EXISTS idx_news_pub ON news_items(published_at DESC);"
@@ -111,6 +113,19 @@ mc_error_t mc_db_migrate(mc_db_t *db)
         NULL, NULL, &err);
     if (err) sqlite3_free(err);
 
+    /* Migration: add region/country columns if missing */
+    err = NULL;
+    sqlite3_exec(db->handle,
+        "ALTER TABLE news_items ADD COLUMN region TEXT DEFAULT '';",
+        NULL, NULL, &err);
+    if (err) sqlite3_free(err);
+
+    err = NULL;
+    sqlite3_exec(db->handle,
+        "ALTER TABLE news_items ADD COLUMN country TEXT DEFAULT '';",
+        NULL, NULL, &err);
+    if (err) sqlite3_free(err);
+
     MC_LOG_INFO("Database migration complete");
     return MC_OK;
 }
@@ -159,9 +174,11 @@ mc_error_t mc_db_insert_entry(mc_db_t *db, const mc_data_entry_t *e)
 mc_error_t mc_db_insert_news(mc_db_t *db, const mc_news_item_t *item)
 {
     const char *sql =
-        "INSERT OR IGNORE INTO news_items "
-        "(title,source,url,summary,category,published_at,fetched_at,base_score) "
-        "VALUES (?,?,?,?,?,?,?,?)";
+        "INSERT INTO news_items "
+        "(title,source,url,summary,category,published_at,fetched_at,base_score,region,country) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?) "
+        "ON CONFLICT(url) DO UPDATE SET region=excluded.region, country=excluded.country "
+        "WHERE excluded.region != '' AND (region IS NULL OR region = '')";
 
     pthread_mutex_lock(&db->mutex);
 
@@ -181,6 +198,8 @@ mc_error_t mc_db_insert_news(mc_db_t *db, const mc_news_item_t *item)
     sqlite3_bind_int64(stmt, 6, item->published_at);
     sqlite3_bind_int64(stmt, 7, item->fetched_at);
     sqlite3_bind_double(stmt, 8, item->score);
+    sqlite3_bind_text(stmt, 9, item->region, -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 10, item->country, -1, SQLITE_STATIC);
 
     rc = sqlite3_step(stmt);
     sqlite3_finalize(stmt);
@@ -273,7 +292,7 @@ int mc_db_get_latest_news(mc_db_t *db, mc_category_t cat,
                           mc_news_item_t *out, int max_count)
 {
     const char *sql =
-        "SELECT id,title,source,url,summary,category,published_at,fetched_at,base_score "
+        "SELECT id,title,source,url,summary,category,published_at,fetched_at,base_score,region,country "
         "FROM news_items WHERE category=? "
         "ORDER BY base_score DESC, published_at DESC LIMIT ?";
 
@@ -313,6 +332,12 @@ int mc_db_get_latest_news(mc_db_t *db, mc_category_t cat,
         n->fetched_at = sqlite3_column_int64(stmt, 7);
         n->score = sqlite3_column_double(stmt, 8);
 
+        s = (const char *)sqlite3_column_text(stmt, 9);
+        if (s) strncpy(n->region, s, MC_MAX_REGION - 1);
+
+        s = (const char *)sqlite3_column_text(stmt, 10);
+        if (s) strncpy(n->country, s, MC_MAX_COUNTRY - 1);
+
         count++;
     }
     sqlite3_finalize(stmt);
@@ -324,7 +349,7 @@ int mc_db_get_all_latest_news(mc_db_t *db,
                                mc_news_item_t *out, int max_count)
 {
     const char *sql =
-        "SELECT id,title,source,url,summary,category,published_at,fetched_at,base_score "
+        "SELECT id,title,source,url,summary,category,published_at,fetched_at,base_score,region,country "
         "FROM news_items "
         "ORDER BY base_score DESC, published_at DESC LIMIT ?";
 
@@ -362,6 +387,12 @@ int mc_db_get_all_latest_news(mc_db_t *db,
         n->published_at = sqlite3_column_int64(stmt, 6);
         n->fetched_at = sqlite3_column_int64(stmt, 7);
         n->score = sqlite3_column_double(stmt, 8);
+
+        s = (const char *)sqlite3_column_text(stmt, 9);
+        if (s) strncpy(n->region, s, MC_MAX_REGION - 1);
+
+        s = (const char *)sqlite3_column_text(stmt, 10);
+        if (s) strncpy(n->country, s, MC_MAX_COUNTRY - 1);
 
         count++;
     }

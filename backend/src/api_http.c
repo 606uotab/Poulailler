@@ -45,6 +45,8 @@ static cJSON *news_to_json(const mc_news_item_t *n)
     cJSON_AddNumberToObject(obj, "published_at", (double)n->published_at);
     cJSON_AddNumberToObject(obj, "fetched_at", (double)n->fetched_at);
     cJSON_AddNumberToObject(obj, "score", n->score);
+    cJSON_AddStringToObject(obj, "region", n->region);
+    cJSON_AddStringToObject(obj, "country", n->country);
     return obj;
 }
 
@@ -98,16 +100,24 @@ static enum MHD_Result handle_entries(mc_api_http_t *api,
 static enum MHD_Result handle_news(mc_api_http_t *api,
                                     struct MHD_Connection *conn)
 {
-    mc_news_item_t *news = malloc(512 * sizeof(mc_news_item_t));
+    mc_news_item_t *news = malloc(2048 * sizeof(mc_news_item_t));
     if (!news) return MHD_NO;
-    int n = mc_scheduler_get_news(api->sched, news, 512);
+    int n = mc_scheduler_get_news(api->sched, news, 2048);
 
     const char *cat_filter = MHD_lookup_connection_value(
         conn, MHD_GET_ARGUMENT_KIND, "category");
+    const char *region_filter = MHD_lookup_connection_value(
+        conn, MHD_GET_ARGUMENT_KIND, "region");
+    const char *country_filter = MHD_lookup_connection_value(
+        conn, MHD_GET_ARGUMENT_KIND, "country");
 
     cJSON *arr = cJSON_CreateArray();
     for (int i = 0; i < n; i++) {
         if (cat_filter && strcmp(mc_category_str(news[i].category), cat_filter) != 0)
+            continue;
+        if (region_filter && strcmp(news[i].region, region_filter) != 0)
+            continue;
+        if (country_filter && strcmp(news[i].country, country_filter) != 0)
             continue;
         cJSON_AddItemToArray(arr, news_to_json(&news[i]));
     }
