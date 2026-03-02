@@ -13,7 +13,7 @@
 #define MAX_SNAPSHOT_ENTRIES 2048
 #define MAX_SNAPSHOT_NEWS   2048
 #define PRUNE_INTERVAL_SEC  120   /* Prune DB every 2 minutes */
-#define PRUNE_MAX_AGE_SEC   3600  /* Keep data for 1 hour */
+#define PRUNE_MAX_AGE_SEC   1800  /* Keep data for 30 minutes */
 #define MAX_BACKOFF_SEC     300   /* Max retry backoff: 5 min */
 #define REST_WORKER_COUNT   8     /* Parallel REST fetch workers */
 
@@ -72,8 +72,9 @@ struct mc_scheduler {
     volatile int       running;
     volatile int       force_refresh;
 
-    /* WS snapshot debounce */
-    volatile time_t    ws_last_snapshot;
+    /* Global snapshot throttle */
+    volatile time_t    last_snapshot_time;
+    pthread_mutex_t    snapshot_throttle_mutex;
 };
 
 static double time_decay_factor(time_t published_at)
@@ -98,8 +99,20 @@ static int cmp_news_score(const void *a, const void *b)
     return (nb->id > na->id) ? 1 : (nb->id < na->id) ? -1 : 0;
 }
 
+#define SNAPSHOT_THROTTLE_SEC 5
+
 static void update_snapshot(mc_scheduler_t *sched)
 {
+    /* Global throttle: skip if called less than 5s ago */
+    time_t now = time(NULL);
+    pthread_mutex_lock(&sched->snapshot_throttle_mutex);
+    if (now - sched->last_snapshot_time < SNAPSHOT_THROTTLE_SEC) {
+        pthread_mutex_unlock(&sched->snapshot_throttle_mutex);
+        return;
+    }
+    sched->last_snapshot_time = now;
+    pthread_mutex_unlock(&sched->snapshot_throttle_mutex);
+
     /* Query DB into temp buffers WITHOUT holding the snapshot lock,
        so API readers are never blocked by slow DB queries */
     mc_data_entry_t *tmp_entries = malloc(MAX_SNAPSHOT_ENTRIES * sizeof(mc_data_entry_t));
@@ -267,7 +280,7 @@ static void *rest_worker_func(void *arg)
             mc_news_item_t *cal_news = malloc(256 * sizeof(mc_news_item_t));
             if (cal_news) {
                 int n = mc_fetch_rest_calendar(src, cal_news, 256);
-                MC_LOG_INFO("Calendar worker: %s returned %d events", src->name, n);
+                MC_LOG_DEBUG("Calendar: %s returned %d events", src->name, n);
                 if (n > 0) {
                     for (int j = 0; j < n; j++) {
                         mc_error_t err = mc_db_insert_news(sched->db, &cal_news[j]);
@@ -350,7 +363,7 @@ static void *rest_dispatch_func(void *arg)
             pthread_cond_broadcast(&sched->rest_queue.ready);
             pthread_mutex_unlock(&sched->rest_queue.mutex);
 
-            /* Wait for all workers, updating snapshot every 3s */
+            /* Wait for all workers to finish */
             pthread_mutex_lock(&sched->rest_done_mutex);
             while (sched->rest_pending > 0 && sched->running) {
                 struct timespec ts;
@@ -358,11 +371,6 @@ static void *rest_dispatch_func(void *arg)
                 ts.tv_sec += 3;
                 pthread_cond_timedwait(&sched->rest_done_cond,
                                        &sched->rest_done_mutex, &ts);
-                if (sched->rest_pending > 0) {
-                    pthread_mutex_unlock(&sched->rest_done_mutex);
-                    update_snapshot(sched);
-                    pthread_mutex_lock(&sched->rest_done_mutex);
-                }
             }
             pthread_mutex_unlock(&sched->rest_done_mutex);
 
@@ -413,20 +421,15 @@ mc_scheduler_t *mc_scheduler_create(const mc_config_t *cfg, mc_db_t *db)
     pthread_cond_init(&sched->rest_queue.ready, NULL);
     pthread_mutex_init(&sched->rest_done_mutex, NULL);
     pthread_cond_init(&sched->rest_done_cond, NULL);
+    pthread_mutex_init(&sched->snapshot_throttle_mutex, NULL);
     return sched;
 }
 
-/* Callback from WS threads when new data arrives (debounced) */
+/* Callback from WS threads when new data arrives */
 static void ws_data_callback(void *userdata)
 {
     mc_scheduler_t *sched = userdata;
-    time_t now = time(NULL);
-
-    /* Debounce: update snapshot at most once per 2 seconds */
-    if (now - sched->ws_last_snapshot >= 2) {
-        sched->ws_last_snapshot = now;
-        update_snapshot(sched);
-    }
+    update_snapshot(sched); /* global throttle handles debounce */
 }
 
 int mc_scheduler_start(mc_scheduler_t *sched)
@@ -524,6 +527,7 @@ void mc_scheduler_destroy(mc_scheduler_t *sched)
     pthread_cond_destroy(&sched->rest_queue.ready);
     pthread_mutex_destroy(&sched->rest_done_mutex);
     pthread_cond_destroy(&sched->rest_done_cond);
+    pthread_mutex_destroy(&sched->snapshot_throttle_mutex);
     free(sched);
 }
 
